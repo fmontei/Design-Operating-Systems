@@ -21,6 +21,7 @@ __attribute__((section("__versions"))) = {
 	{ 0x638fe045, __VMLINUX_SYMBOL_STR(unregister_kprobe) },
 	{ 0x512b1d19, __VMLINUX_SYMBOL_STR(register_kprobe) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
+	{ 0x7378123e, __VMLINUX_SYMBOL_STR(current_task) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 };
 
@@ -30,4 +31,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "B4AFFF3E09F1C6D3C93D469");
+MODULE_INFO(srcversion, "214ACE0412C8B435E35C7FF");
