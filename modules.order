@@ -1,1 +1,2 @@
 kernel//root/kprobe/mod1.ko
+kernel//root/kprobe/sysmon_uid.ko
