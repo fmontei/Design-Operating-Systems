@@ -26,7 +26,11 @@ int Pre_Handler(struct kprobe *p, struct pt_regs *regs) {
 } 
  
 void Post_Handler(struct kprobe *p, struct pt_regs *regs, unsigned long flags) { 
-    printk(KERN_INFO "Felipe's Post_Handler: counter = %u\n", counter++);
+    switch (regs->ax) {
+        case __NR_mkdir:
+            printk(KERN_INFO "Felipe's Post_Handler: counter = %u\n", counter++);
+            break;
+    }
 } 
  
 int myinit(void) 

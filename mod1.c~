@@ -9,6 +9,10 @@ static unsigned int counter = 0;
 int Pre_Handler(struct kprobe *p, struct pt_regs *regs) { 
     int ret = 0;
    
+    /* The example on T-Square uses regs->rax, but I had to use regs->ax
+     * See documentation for struct pt_regs here:
+     * http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h 
+     */
     switch (regs->ax) {
         case __NR_mkdir:
             printk(KERN_INFO "Felipe's Pre_Handler: counter = %u\n", counter++);
@@ -22,7 +26,11 @@ int Pre_Handler(struct kprobe *p, struct pt_regs *regs) {
 } 
  
 void Post_Handler(struct kprobe *p, struct pt_regs *regs, unsigned long flags) { 
-    printk(KERN_INFO "Felipe's Post_Handler: counter = %u\n", counter++);
+    switch (regs->ax) {
+        case __NR_mkdir:
+            printk(KERN_INFO "Felipe's Post_Handler: counter = %u\n", counter++);
+            break;
+    }
 } 
  
 int myinit(void) 
