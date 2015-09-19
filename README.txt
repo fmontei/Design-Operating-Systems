@@ -4,7 +4,7 @@ Type the following commands into the terminal:
 
 1) sudo apt-get install linux-headers-$(uname -r) build-essential
 2) sudo apt-get install linux-source
-
+3) Must initialize project in /root/
 
 II. RUN PROGRAM
 
