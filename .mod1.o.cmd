@@ -807,6 +807,7 @@ deps_/root/kprobe/mod1.o := \
     $(wildcard include/config/slob.h) \
   include/linux/kmemleak.h \
     $(wildcard include/config/debug/kmemleak.h) \
+  include/asm-generic/uaccess.h \
 
 /root/kprobe/mod1.o: $(deps_/root/kprobe/mod1.o)
 

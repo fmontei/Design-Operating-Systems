@@ -5,6 +5,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
+#include <asm-generic/uaccess.h>
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
@@ -80,12 +81,58 @@ static int open(struct inode *inode, struct file *file)
     return single_open(file, show, NULL);
 }
 
-static const struct file_operations my_file_ops = {
+/*static const struct file_operations my_file_ops = {
     .owner   = THIS_MODULE,
     .open    = open,
     .read    = seq_read,
     .llseek  = seq_lseek,
     .release = seq_release,
+};*/
+
+static int len = 0;
+static int len_check = 1;
+static char user_data[100];
+
+int simple_proc_open(struct inode * sp_inode, struct file *sp_file)
+{
+    printk(KERN_INFO "proc called open\n");
+    return 0;
+}
+
+int simple_proc_release(struct inode *sp_indoe, struct file *sp_file)
+{
+    printk(KERN_INFO "proc called release\n %s", user_data);
+    return 0;
+}
+
+int simple_proc_read(struct file *sp_file,char __user *buf, size_t size, loff_t *offset)
+{
+    if (len_check) 
+    {
+        len_check = 0;
+        copy_to_user(buf, log, strlen(log));
+        return strlen(log);
+    }
+    else 
+    {
+        len_check = 1;
+        return 0;
+    }
+}
+
+int simple_proc_write(struct file *sp_file,const char __user *buf, size_t size, loff_t *offset)
+{
+    printk(KERN_INFO "proc called write %s\n", buf);
+    len = size;
+    copy_from_user(user_data, buf, len);
+    return len;
+}
+
+struct file_operations my_file_ops = {
+.open = simple_proc_open,
+.read = simple_proc_read,
+.write = simple_proc_write,
+.release = simple_proc_release
 };
 
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
