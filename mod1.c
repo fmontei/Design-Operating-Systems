@@ -1,6 +1,11 @@
 #include <linux/kernel.h>
 #include <linux/kprobes.h>
 #include <linux/module.h>
+#include <linux/init.h>
+#include <linux/fs.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+#include <linux/slab.h>
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
@@ -52,12 +57,84 @@ static const char *symbol_names[NUM_KPROBES] = {
     "sys_wait4", "sys_write"
 };
 
+#define MAX_LENGTH 1024
+
+static char *log;
+static char *temp;
+
+static void substring(char s[], char sub[], int p, int l);
+
+static void add_entry_to_log(char *entry)
+{
+    if (strlen(log) + strlen(entry) < MAX_LENGTH)
+    {
+        strcat(log, entry);
+    }
+    else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
+    {
+        char token = '\n';
+        int i = 0; 
+        while (token != log[i])
+        {
+            i++;
+        }
+        i += 2; // Include \n character
+        
+        temp = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
+        substring(log, temp, i, MAX_LENGTH - i);
+        
+        kfree(log);
+        log = temp;
+        
+        if (strlen(log) + strlen(entry) < MAX_LENGTH)
+            strcat(log, entry);
+        else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
+            add_entry_to_log(entry);
+    }
+}
+
+static void substring(char s[], char sub[], int p, int l) {
+   int c = 0;
+ 
+   while (c < l) {
+      sub[c] = s[p + c - 1];
+      c++;
+   }
+}
+	
+static int show(struct seq_file *m, void *v)
+{
+    seq_printf(m, "%s\n", log);
+    return 0;
+}
+
+static int open(struct inode *inode, struct file *file)
+{
+    return single_open(file, show, NULL);
+}
+
+static ssize_t
+write(struct file *file, const char * buf, size_t size, loff_t * ppos)
+{
+    return 0;
+}
+
+static const struct file_operations my_file_ops = {
+	.owner   = THIS_MODULE,
+	.open    = open,
+    .write   = write,
+	.read    = seq_read,
+    .llseek = seq_lseek,
+	.release = seq_release,
+};
+
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
  * See documentation for struct pt_regs here:
  * http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h 
  */
 int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) { 
     int ret = 0;
+    char *entry;
    
     switch (regs->ax) {
         case __NR_access:
@@ -73,9 +150,12 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_chdir:
+            entry = "Hello world!";
             printk(KERN_INFO MODULE_NAME SYS_CHDIR
                     "%lu %d %d\n",
                     regs->ax, current->pid, current->tgid);
+
+            add_entry_to_log(entry);
             break;
 
         case __NR_chmod:
@@ -269,6 +349,9 @@ int init_module(void) {
     
     printk(KERN_INFO "register_kprobe successfully initialized\n"); 
 
+    log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
+    proc_create("sysmon_log", 0600, NULL, &my_file_ops);
+
     return 0; 
 } 
  
@@ -278,6 +361,9 @@ void cleanup_module(void) {
     for ( ; i < NUM_KPROBES; i++) {
         unregister_kprobe(&kprobes[i]); 
     }
+
+    kfree(log);
+    remove_proc_entry("sysmon_uid", NULL);
 
     printk(KERN_INFO "module removed\n "); 
 } 

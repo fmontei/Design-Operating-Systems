@@ -1,4 +1,4 @@
-obj-m += mod1.o sysmon_uid.o
+obj-m += mod1.o
 KDIR= /lib/modules/$(shell uname -r)/build
 all: 
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules 
