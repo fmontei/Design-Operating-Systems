@@ -14,6 +14,7 @@ MODULE_LICENSE("GPL");
 #define NUM_KPROBES 30
 
 #define MODULE_NAME "[sysmon"
+#define SYSMON_LOG "sysmon_log"
 
 #define SYS_ACCESS " - access] "
 #define SYS_BRK " - brk] "
@@ -114,7 +115,7 @@ static int open(struct inode *inode, struct file *file)
 }
 
 static ssize_t
-write(struct file *file, const char * buf, size_t size, loff_t * ppos)
+write(struct file *file, const char *buf, size_t size, loff_t * ppos)
 {
     return 0;
 }
@@ -134,7 +135,7 @@ static const struct file_operations my_file_ops = {
  */
 int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) { 
     int ret = 0;
-    char *entry;
+    //char *entry;
    
     switch (regs->ax) {
         case __NR_access:
@@ -245,7 +246,7 @@ void sysmon_intercept_after(struct kprobe *p, struct pt_regs *regs,
     /* Here you could capture the return code if you wanted. */
 } 
  
-int init_module(void) {
+int my_init_module(void) {
     int ret, i = 0;
 
     for ( ; i < NUM_KPROBES; i++) {
@@ -265,12 +266,12 @@ int init_module(void) {
     //log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
     //char *entry = "The log is empty.\n";
     //add_entry_to_log(entry);
-    //proc_create("sysmon_log", 0600, NULL, &my_file_ops);
+    proc_create(SYSMON_LOG, 0600, NULL, &my_file_ops);
 
     return 0; 
 } 
  
-void cleanup_module(void) { 
+void my_cleanup_module(void) { 
     int i = 0;
 
     for ( ; i < NUM_KPROBES; i++) {
@@ -278,8 +279,11 @@ void cleanup_module(void) {
     }
 
     //kfree(log);
-    //remove_proc_entry("sysmon_uid", NULL);
+    remove_proc_entry(SYSMON_LOG, NULL);
 
-    printk(KERN_INFO "module removed\n "); 
+    printk(KERN_INFO "module removed\n"); 
 } 
+
+module_init(my_init_module); 
+module_exit(my_cleanup_module); 
 
