@@ -138,19 +138,13 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
    
     switch (regs->ax) {
         case __NR_access:
-            printk(KERN_INFO MODULE_NAME SYS_ACCESS
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_brk:
-            printk(KERN_INFO MODULE_NAME SYS_BRK
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_chdir:
-            entry = "Hello world!";
+            entry = "Hello world!\n";
             printk(KERN_INFO MODULE_NAME SYS_CHDIR
                     "%lu %d %d\n",
                     regs->ax, current->pid, current->tgid);
@@ -159,159 +153,81 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_chmod:
-            printk(KERN_INFO MODULE_NAME SYS_CHMOD
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_clone:
-            printk(KERN_INFO MODULE_NAME SYS_CLONE
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_close:
-            printk(KERN_INFO MODULE_NAME SYS_CLOSE
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_dup:
-            printk(KERN_INFO MODULE_NAME SYS_DUP
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_dup2:
-            printk(KERN_INFO MODULE_NAME SYS_DUP2
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_execve:
-            printk(KERN_INFO MODULE_NAME SYS_EXECVE
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_exit_group:
-            printk(KERN_INFO MODULE_NAME SYS_EXIT_GROUP
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_fcntl:
-            printk(KERN_INFO MODULE_NAME SYS_FCNTL
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_fork:
-            printk(KERN_INFO MODULE_NAME SYS_FORK
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_getdents:
-            printk(KERN_INFO MODULE_NAME SYS_GETDENTS
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_getpid:
-            printk(KERN_INFO MODULE_NAME SYS_GETPID
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_gettid:
-            printk(KERN_INFO MODULE_NAME SYS_GETTID
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_ioctl:
-            printk(KERN_INFO MODULE_NAME SYS_IOCTL
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_lseek:
-            printk(KERN_INFO MODULE_NAME SYS_LSEEK
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_mkdir:
-            printk(KERN_INFO MODULE_NAME SYS_MKDIR
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_mmap:
-            printk(KERN_INFO MODULE_NAME SYS_MMAP
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_munmap:
-            printk(KERN_INFO MODULE_NAME SYS_MUNMAP
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_open:
-            printk(KERN_INFO MODULE_NAME SYS_OPEN
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_pipe:
-            printk(KERN_INFO MODULE_NAME SYS_PIPE
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_read:
-            printk(KERN_INFO MODULE_NAME SYS_READ
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_rmdir:
-            printk(KERN_INFO MODULE_NAME SYS_RMDIR
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_select:
-            printk(KERN_INFO MODULE_NAME SYS_SELECT
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_stat:
-            printk(KERN_INFO MODULE_NAME SYS_STAT
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_fstat:
-            printk(KERN_INFO MODULE_NAME SYS_FSTAT
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_lstat:
-            printk(KERN_INFO MODULE_NAME SYS_LSTAT
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_wait4:
-            printk(KERN_INFO MODULE_NAME SYS_WAIT4
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         case __NR_write:
@@ -350,6 +266,8 @@ int init_module(void) {
     printk(KERN_INFO "register_kprobe successfully initialized\n"); 
 
     log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
+    char *entry = "The log is empty.\n";
+    add_entry_to_log(entry);
     proc_create("sysmon_log", 0600, NULL, &my_file_ops);
 
     return 0; 
