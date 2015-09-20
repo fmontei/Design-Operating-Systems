@@ -14,29 +14,20 @@ int main(void)
 {
     log = (char *) malloc(sizeof(char) * MAX_LENGTH);
 
-    int i = 0;
-    for (; i < 1000000; i++) { 
-        char *entry = "Hello world!\n";   
-        add_entry_to_log(entry);
+    char entry[200];
+    int uid = 54321, pid = 12345;
+    long unsigned int regs_ax = 1312, nr_mkdir = 5243;
+    char *regs_di = "regs_di";
 
-        entry = "Hello world again!\n";
-        add_entry_to_log(entry);
+    sprintf(entry, "my sysmon_intercept_before: uid = %d, " 
+		"pid = %d, regs->ax = %lu, regs->di = %s, __NR_mkdir: %lu\n",
+                uid, pid, regs_ax, regs_di, nr_mkdir); 
+    printf("length = %d\n", (int) strlen(entry));
+    add_entry_to_log(entry);
 
-        entry = "Felipe Monteiro\n";
-        add_entry_to_log(entry);
+    printf("log = %s", log);
 
-        entry = "Blah Blah\n";
-        add_entry_to_log(entry);
-
-        entry = "random characters random characters\n";
-        add_entry_to_log(entry);
-
-        entry = "random!!!!\n";
-        add_entry_to_log(entry);
-
-        printf("log =\n%s", log);
-    }
-
+    
     return 0;
 }
 

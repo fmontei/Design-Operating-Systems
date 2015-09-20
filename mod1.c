@@ -135,7 +135,7 @@ static const struct file_operations my_file_ops = {
  */
 int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) { 
     int ret = 0;
-    char *entry;
+    char entry[200];
    
     switch (regs->ax) {
         case __NR_access:
@@ -145,11 +145,10 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_chdir:
-            entry = "Hello world!\n";
-            printk(KERN_INFO MODULE_NAME SYS_CHDIR
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
-
+            sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
+                "current->pid = %d, current->tgid = %d, regs->di = %lu, __NR_mkdir: %lu\n",
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_mkdir);
             add_entry_to_log(entry);
             break;
 
@@ -248,6 +247,9 @@ void sysmon_intercept_after(struct kprobe *p, struct pt_regs *regs,
  
 int my_init_module(void) {
     int ret, i = 0;
+    char *entry;
+    entry = "The log is empty.\n";
+    
 
     for ( ; i < NUM_KPROBES; i++) {
         kprobes[i].symbol_name = symbol_names[i];
@@ -264,7 +266,6 @@ int my_init_module(void) {
     printk(KERN_INFO "register_kprobe successfully initialized\n"); 
 
     log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
-    char *entry = "The log is empty.\n";
     add_entry_to_log(entry);
     proc_create(SYSMON_LOG, 0600, NULL, &my_file_ops);
 
