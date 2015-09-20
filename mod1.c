@@ -59,14 +59,14 @@ static const char *symbol_names[NUM_KPROBES] = {
 
 #define MAX_LENGTH 1024
 
-static char *log;
-static char *temp;
+/*static char *log;
+static char *temp;*/
 
 static void substring(char s[], char sub[], int p, int l);
 
 static void add_entry_to_log(char *entry)
 {
-    if (strlen(log) + strlen(entry) < MAX_LENGTH)
+    /*if (strlen(log) + strlen(entry) < MAX_LENGTH)
     {
         strcat(log, entry);
     }
@@ -90,7 +90,7 @@ static void add_entry_to_log(char *entry)
             strcat(log, entry);
         else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
             add_entry_to_log(entry);
-    }
+    }*/
 }
 
 static void substring(char s[], char sub[], int p, int l) {
@@ -104,7 +104,7 @@ static void substring(char s[], char sub[], int p, int l) {
 	
 static int show(struct seq_file *m, void *v)
 {
-    seq_printf(m, "%s\n", log);
+    //seq_printf(m, "%s\n", log);
     return 0;
 }
 
@@ -120,12 +120,12 @@ write(struct file *file, const char * buf, size_t size, loff_t * ppos)
 }
 
 static const struct file_operations my_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = open,
+    .owner   = THIS_MODULE,
+    .open    = open,
     .write   = write,
-	.read    = seq_read,
+    .read    = seq_read,
     .llseek = seq_lseek,
-	.release = seq_release,
+    .release = seq_release,
 };
 
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
@@ -144,12 +144,12 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_chdir:
-            entry = "Hello world!\n";
+            //entry = "Hello world!\n";
             printk(KERN_INFO MODULE_NAME SYS_CHDIR
                     "%lu %d %d\n",
                     regs->ax, current->pid, current->tgid);
 
-            add_entry_to_log(entry);
+            //add_entry_to_log(entry);
             break;
 
         case __NR_chmod:
@@ -231,9 +231,6 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_write:
-            printk(KERN_INFO MODULE_NAME SYS_WRITE
-                    "%lu %d %d\n",
-                    regs->ax, current->pid, current->tgid);
             break;
 
         default:
@@ -265,10 +262,10 @@ int init_module(void) {
     
     printk(KERN_INFO "register_kprobe successfully initialized\n"); 
 
-    log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
-    char *entry = "The log is empty.\n";
-    add_entry_to_log(entry);
-    proc_create("sysmon_log", 0600, NULL, &my_file_ops);
+    //log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
+    //char *entry = "The log is empty.\n";
+    //add_entry_to_log(entry);
+    //proc_create("sysmon_log", 0600, NULL, &my_file_ops);
 
     return 0; 
 } 
@@ -280,8 +277,8 @@ void cleanup_module(void) {
         unregister_kprobe(&kprobes[i]); 
     }
 
-    kfree(log);
-    remove_proc_entry("sysmon_uid", NULL);
+    //kfree(log);
+    //remove_proc_entry("sysmon_uid", NULL);
 
     printk(KERN_INFO "module removed\n "); 
 } 
