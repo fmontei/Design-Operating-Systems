@@ -146,9 +146,9 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_chdir:
             sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
-                "current->pid = %d, current->tgid = %d, regs->di = %lu, __NR_mkdir: %lu\n",
-                regs->ax, current->pid, current->tgid, 
-                (uintptr_t) regs->di, (long unsigned int) __NR_mkdir);
+                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
+                "__NR_chdir: %lu\n", regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_chdir);
             add_entry_to_log(entry);
             break;
 
@@ -192,9 +192,19 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_lseek:
+            /*sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
+                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
+                "__NR_lseek: %lu\n", regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_lseek);
+            add_entry_to_log(entry);*/
             break;
 
         case __NR_mkdir:
+            sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
+                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
+                "__NR_mkdir: %lu\n", regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_mkdir);
+            add_entry_to_log(entry);
             break;
 
         case __NR_mmap:
