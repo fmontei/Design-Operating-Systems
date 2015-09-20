@@ -631,7 +631,9 @@ deps_/root/kprobe/sysmon_uid.o := \
   include/uapi/asm-generic/fcntl.h \
   include/linux/proc_fs.h \
   include/linux/seq_file.h \
-  /root/kprobe/globals.h \
+  include/linux/delay.h \
+  arch/x86/include/asm/delay.h \
+  include/asm-generic/delay.h \
 
 /root/kprobe/sysmon_uid.o: $(deps_/root/kprobe/sysmon_uid.o)
 
