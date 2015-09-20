@@ -7,7 +7,6 @@
 
 #include "globals.h"
 
-
 static int
 sysmon_uid_show(struct seq_file *m, void *v)
 {
