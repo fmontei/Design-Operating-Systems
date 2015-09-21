@@ -71,10 +71,8 @@ static void substring(char s[], char sub[], int p, int l) {
 }
 
 /* Sysmon UID Code: reference is www.pageframes.com/?p=89 */
-static int sysmon_uid_write_length = 0;
 static int sysmon_uid_len_check = 1;
-static char sysmon_uid_user_data[2];
-static long on_or_off = 1;
+static unsigned int on_or_off = 1;
 
 static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
 {
@@ -103,14 +101,20 @@ static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
 
 static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
 {
-    sysmon_uid_write_length = size;
-    if (sysmon_uid_write_length == 2) // 2 includes the number and \0
+    if (size == 2) // 2 includes the number and \0
     {
-        copy_from_user(sysmon_uid_user_data, buf, sysmon_uid_write_length);
-        kstrtol(sysmon_uid_user_data, 10, &on_or_off);
-        if (on_or_off == 0 || on_or_off == 1) 
+        const char number = buf[0];
+        if (number == '0') 
         {
-            return sysmon_uid_write_length;
+            on_or_off = 0;
+            printk(KERN_INFO "Sysmon log disabled.\n");
+            return size;
+        }
+        else if (number == '1') 
+        {
+            on_or_off = 1;
+            printk(KERN_INFO "Sysmon log enabled.\n");
+            return size;
         }
     }
     return -EINVAL;
@@ -153,7 +157,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
     if (!on_or_off)
     {
-        return -EINVAL;
+        return ret;
     }
    
     switch (regs->ax) {

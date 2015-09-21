@@ -1,17 +1,21 @@
-#include <linux/module.h>
-#include <linux/slab.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-#include "globals.h"
+#define LOG_MAX_LENGTH 1024
+
+static char *log; 
+static char *temp;
 
 void substring(char s[], char sub[], int p, int l);
 
 void add_entry_to_log(char *entry)
 {
-    if (strlen(log) + strlen(entry) < MAX_LENGTH)
+    if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH)
     {
         strcat(log, entry);
     }
-    else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
+    else if (strlen(log) + strlen(entry) >= LOG_MAX_LENGTH)
     {
         char token = '\n';
         int i = 0; 
@@ -21,15 +25,15 @@ void add_entry_to_log(char *entry)
         }
         i += 2; // Include \n character
         
-        temp = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
-        substring(log, temp, i, MAX_LENGTH - i);
+        temp = (char *) malloc(sizeof(char) * LOG_MAX_LENGTH);
+        substring(log, temp, i, LOG_MAX_LENGTH - i);
         
-        kfree(log);
+        free(log);
         log = temp;
         
-        if (strlen(log) + strlen(entry) < MAX_LENGTH)
+        if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH)
             strcat(log, entry);
-        else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
+        else if (strlen(log) + strlen(entry) >= LOG_MAX_LENGTH)
             add_entry_to_log(entry);
     }
 }
@@ -42,3 +46,16 @@ void substring(char s[], char sub[], int p, int l) {
       c++;
    }
 }
+
+int main(void) 
+{
+    log = (char *) malloc(sizeof(char) * LOG_MAX_LENGTH);
+    char array[2] = "0\0";
+    printf("array length = %d\n", (int) strlen(array));
+    if (array[0] == '0' || array[0] == '1') 
+    {
+        printf("found a number!\n");
+    }
+    return 0;
+}
+

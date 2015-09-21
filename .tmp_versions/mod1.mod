@@ -1,2 +1,2 @@
-/root/kprobe/mod1.ko
-/root/kprobe/mod1.o
+/root/Design-Operating-Systems/mod1.ko
+/root/Design-Operating-Systems/mod1.o
