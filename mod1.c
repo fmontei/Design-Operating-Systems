@@ -72,7 +72,7 @@ static void substring(char s[], char sub[], int p, int l) {
    }
 }
 
-/* Sysmon UID Code: write not complete */
+/* Sysmon UID Code */
 static int sysmon_uid_len_check = 1;
 
 //static char msg[128];
@@ -239,7 +239,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_chdir:
             sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
-                "current->pid = s%d, current->tgid = %d, regs->di = %lu, "
+                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
                 "__NR_chdir: %lu\n", regs->ax, current->pid, current->tgid, 
                 (uintptr_t) regs->di, (long unsigned int) __NR_chdir);
             add_entry_to_log(entry);
