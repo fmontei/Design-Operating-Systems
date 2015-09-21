@@ -44,12 +44,12 @@ III. PRINT OUT LOG -- SYSMON_LOG PROC FILE
 2) Go to /proc directory
 3) Type cat sysmon_log (or alternatively, gedit sysmon_log)
 
-IV. DISABLE/ENABLE LOGGING -- SYSMON_UID PROC FILE
+IV. DISABLE/ENABLE LOGGING -- SYSMON_TOGGLE PROC FILE
 
 1) Make sure you are superuser (sudo -s)
 2) Go to /proc directory
-3) Type echo 0 > sysmon_uid to disable logging
-4) Type echo 1 > sysmon_uid to enable logging
+3) Type echo 0 > sysmon_toggle to disable logging
+4) Type echo 1 > sysmon_toggle to enable logging
 5) Typing dmesg shows a message indicating whether logging was enabled/disabled
 
 III. HELPFUL LINKS

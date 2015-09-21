@@ -12,8 +12,10 @@ MODULE_DESCRIPTION("KPROBE MODULE");
 MODULE_LICENSE("GPL");
 
 #define NUM_KPROBES 30
+#define THE_UID 2152
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
+#define SYSMON_TOGGLE "sysmon_toggle"
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -70,36 +72,36 @@ static void substring(char s[], char sub[], int p, int l) {
    }
 }
 
-/* Sysmon UID Code: reference is www.pageframes.com/?p=89 */
-static int sysmon_uid_len_check = 1;
+/* Sysmon TOGGLE Code: reference is www.pageframes.com/?p=89 */
+static int sysmon_toggle_len_check = 1;
 static unsigned int on_or_off = 1;
 
-static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
+static int sysmon_toggle_open(struct inode * sp_inode, struct file *sp_file)
 {
     return 0;
 }
 
-static int sysmon_uid_release(struct inode *sp_indoe, struct file *sp_file)
+static int sysmon_toggle_release(struct inode *sp_indoe, struct file *sp_file)
 {
     return 0;
 }
 
-static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
+static int sysmon_toggle_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
 {
-    if (sysmon_uid_len_check) 
+    if (sysmon_toggle_len_check) 
     {
-        sysmon_uid_len_check = 0;
+        sysmon_toggle_len_check = 0;
         copy_to_user(buf, log, strlen(log));
         return strlen(log);
     }
     else 
     {
-        sysmon_uid_len_check = 1;
+        sysmon_toggle_len_check = 1;
         return 0;
     }
 }
 
-static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
+static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
 {
     if (size == 2) // 2 includes the number and \0
     {
@@ -120,11 +122,11 @@ static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t
     return -EINVAL;
 }
 
-static const struct file_operations sysmon_uid_fops = {
-    .open = sysmon_uid_open,
-    .read = sysmon_uid_read,
-    .write = sysmon_uid_write,
-    .release = sysmon_uid_release
+static const struct file_operations sysmon_toggle_fops = {
+    .open = sysmon_toggle_open,
+    .read = sysmon_toggle_read,
+    .write = sysmon_toggle_write,
+    .release = sysmon_toggle_release
 };
 
 /* Sysmon Log Code */
@@ -159,7 +161,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
     {
         return ret;
     }
-   
+    //if(current->pid != THE_UID) return ret;
     switch (regs->ax) {
         case __NR_access:
             break;
@@ -301,7 +303,7 @@ int my_init_module(void) {
     log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, __GFP_REPEAT);
     add_entry_to_log(entry);
     
-    proc_create(SYSMON_UID, 0600, NULL, &sysmon_uid_fops);
+    proc_create(SYSMON_TOGGLE, 0600, NULL, &sysmon_toggle_fops);
     proc_create(SYSMON_LOG, 0400, NULL, &sysmon_log_fops);
 
     return 0; 
@@ -315,7 +317,7 @@ void my_cleanup_module(void) {
     }
 
     kfree(log);
-    remove_proc_entry(SYSMON_UID, NULL);
+    remove_proc_entry(SYSMON_TOGGLE, NULL);
     remove_proc_entry(SYSMON_LOG, NULL);
 
     printk(KERN_INFO "Sysmon log module removed.\n"); 
