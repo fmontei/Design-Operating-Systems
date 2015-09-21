@@ -13,10 +13,11 @@ MODULE_LICENSE("GPL");
 
 #define NUM_KPROBES 30
 #define SYSMON_LOG "sysmon_log"
+#define SYSMON_UID "sysmon_uid"
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
-	"sys_access", "sys_brk", "sys_chdir", 
+    "sys_access", "sys_brk", "sys_chdir", 
     "sys_chmod", "sys_clone", "sys_close", "sys_dup", "sys_dup2",
     "sys_execve", "sys_exit_group", "sys_fcntl", "sys_fork", "sys_getdents",
     "sys_getpid", "sys_gettid", "sys_ioctl", "sys_lseek", "sys_mkdir",
@@ -25,20 +26,19 @@ static const char *symbol_names[NUM_KPROBES] = {
     "sys_wait4", "sys_write"
 };
 
-#define MAX_LENGTH 1024
-
-static char *log;
-static char *temp;
+#define LOG_MAX_LENGTH 1024 // Max length of Log
+static char *log;  // Log character array
+static char *temp; // Temporary log character array
 
 static void substring(char s[], char sub[], int p, int l);
 
 static void add_entry_to_log(char *entry)
 {
-    if (strlen(log) + strlen(entry) < MAX_LENGTH)
+    if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH)
     {
         strcat(log, entry);
     }
-    else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
+    else if (strlen(log) + strlen(entry) >= LOG_MAX_LENGTH)
     {
         char token = '\n';
         int i = 0; 
@@ -48,15 +48,15 @@ static void add_entry_to_log(char *entry)
         }
         i += 2; // Include \n character
         
-        temp = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
-        substring(log, temp, i, MAX_LENGTH - i);
+        temp = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, __GFP_REPEAT);
+        substring(log, temp, i, LOG_MAX_LENGTH - i);
         
         kfree(log);
         log = temp;
         
-        if (strlen(log) + strlen(entry) < MAX_LENGTH)
+        if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH)
             strcat(log, entry);
-        else if (strlen(log) + strlen(entry) >= MAX_LENGTH)
+        else if (strlen(log) + strlen(entry) >= LOG_MAX_LENGTH)
             add_entry_to_log(entry);
     }
 }
@@ -69,7 +69,61 @@ static void substring(char s[], char sub[], int p, int l) {
       c++;
    }
 }
-	
+
+/* Sysmon UID Code: reference is www.pageframes.com/?p=89 */
+static int sysmon_uid_write_length = 0;
+static int sysmon_uid_len_check = 1;
+static char sysmon_uid_user_data[2];
+static long on_or_off = 1;
+
+static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
+{
+    return 0;
+}
+
+static int sysmon_uid_release(struct inode *sp_indoe, struct file *sp_file)
+{
+    return 0;
+}
+
+static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
+{
+    if (sysmon_uid_len_check) 
+    {
+        sysmon_uid_len_check = 0;
+        copy_to_user(buf, log, strlen(log));
+        return strlen(log);
+    }
+    else 
+    {
+        sysmon_uid_len_check = 1;
+        return 0;
+    }
+}
+
+static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
+{
+    sysmon_uid_write_length = size;
+    if (sysmon_uid_write_length == 2) // 2 includes the number and \0
+    {
+        copy_from_user(sysmon_uid_user_data, buf, sysmon_uid_write_length);
+        kstrtol(sysmon_uid_user_data, 10, &on_or_off);
+        if (on_or_off == 0 || on_or_off == 1) 
+        {
+            return sysmon_uid_write_length;
+        }
+    }
+    return -EINVAL;
+}
+
+static const struct file_operations sysmon_uid_fops = {
+    .open = sysmon_uid_open,
+    .read = sysmon_uid_read,
+    .write = sysmon_uid_write,
+    .release = sysmon_uid_release
+};
+
+/* Sysmon Log Code */
 static int show(struct seq_file *m, void *v)
 {
     seq_printf(m, "%s\n", log);
@@ -81,58 +135,12 @@ static int open(struct inode *inode, struct file *file)
     return single_open(file, show, NULL);
 }
 
-/*static const struct file_operations my_file_ops = {
+static const struct file_operations sysmon_log_fops = {
     .owner   = THIS_MODULE,
     .open    = open,
     .read    = seq_read,
     .llseek  = seq_lseek,
-    .release = seq_release,
-};*/
-
-static int len = 0;
-static int len_check = 1;
-static char user_data[100];
-
-int simple_proc_open(struct inode * sp_inode, struct file *sp_file)
-{
-    printk(KERN_INFO "proc called open\n");
-    return 0;
-}
-
-int simple_proc_release(struct inode *sp_indoe, struct file *sp_file)
-{
-    printk(KERN_INFO "proc called release\n %s", user_data);
-    return 0;
-}
-
-int simple_proc_read(struct file *sp_file,char __user *buf, size_t size, loff_t *offset)
-{
-    if (len_check) 
-    {
-        len_check = 0;
-        copy_to_user(buf, log, strlen(log));
-        return strlen(log);
-    }
-    else 
-    {
-        len_check = 1;
-        return 0;
-    }
-}
-
-int simple_proc_write(struct file *sp_file,const char __user *buf, size_t size, loff_t *offset)
-{
-    printk(KERN_INFO "proc called write %s\n", buf);
-    len = size;
-    copy_from_user(user_data, buf, len);
-    return len;
-}
-
-struct file_operations my_file_ops = {
-.open = simple_proc_open,
-.read = simple_proc_read,
-.write = simple_proc_write,
-.release = simple_proc_release
+    .release = seq_release
 };
 
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
@@ -142,6 +150,11 @@ struct file_operations my_file_ops = {
 int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) { 
     int ret = 0;
     char entry[200];
+
+    if (!on_or_off)
+    {
+        return -EINVAL;
+    }
    
     switch (regs->ax) {
         case __NR_access:
@@ -273,17 +286,19 @@ int my_init_module(void) {
         kprobes[i].post_handler = sysmon_intercept_after; 
         ret = register_kprobe(&kprobes[i]);
         if (ret < 0) {
-            printk(KERN_INFO "register_kprobe failed, symbol_name = %s, " \
+            printk(KERN_INFO "register_kprobe failed, symbol_name = %s, "
                 "returned = %d\n", symbol_names[i], ret);
             return ret;
         }
     }
     
-    printk(KERN_INFO "register_kprobe successfully initialized\n"); 
+    printk(KERN_INFO "Sysmon log module successfully initialized.\n"); 
 
-    log = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
+    log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, __GFP_REPEAT);
     add_entry_to_log(entry);
-    proc_create(SYSMON_LOG, 0600, NULL, &my_file_ops);
+    
+    proc_create(SYSMON_UID, 0600, NULL, &sysmon_uid_fops);
+    proc_create(SYSMON_LOG, 0400, NULL, &sysmon_log_fops);
 
     return 0; 
 } 
@@ -296,9 +311,10 @@ void my_cleanup_module(void) {
     }
 
     kfree(log);
+    remove_proc_entry(SYSMON_UID, NULL);
     remove_proc_entry(SYSMON_LOG, NULL);
 
-    printk(KERN_INFO "module removed\n"); 
+    printk(KERN_INFO "Sysmon log module removed.\n"); 
 } 
 
 module_init(my_init_module); 

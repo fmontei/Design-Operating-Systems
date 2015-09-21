@@ -1,35 +1,9 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <linux/module.h>
+#include <linux/slab.h>
 
-#define MAX_LENGTH 1024
+#include "globals.h"
 
-static char *log;
-static char *temp;
-
-void add_entry_to_log(char *entry);
 void substring(char s[], char sub[], int p, int l);
-
-int main(void) 
-{
-    log = (char *) malloc(sizeof(char) * MAX_LENGTH);
-
-    char entry[200];
-    int uid = 54321, pid = 12345;
-    long unsigned int regs_ax = 1312, nr_mkdir = 5243;
-    char *regs_di = "regs_di";
-
-    sprintf(entry, "my sysmon_intercept_before: uid = %d, " 
-		"pid = %d, regs->ax = %lu, regs->di = %s, __NR_mkdir: %lu\n",
-                uid, pid, regs_ax, regs_di, nr_mkdir); 
-    printf("length = %d\n", (int) strlen(entry));
-    add_entry_to_log(entry);
-
-    printf("log = %s", log);
-
-    
-    return 0;
-}
 
 void add_entry_to_log(char *entry)
 {
@@ -47,10 +21,10 @@ void add_entry_to_log(char *entry)
         }
         i += 2; // Include \n character
         
-        temp = (char *) malloc(sizeof(char) * MAX_LENGTH);
+        temp = (char *) kmalloc(sizeof(char) * MAX_LENGTH, __GFP_REPEAT);
         substring(log, temp, i, MAX_LENGTH - i);
         
-        free(log);
+        kfree(log);
         log = temp;
         
         if (strlen(log) + strlen(entry) < MAX_LENGTH)
@@ -68,4 +42,3 @@ void substring(char s[], char sub[], int p, int l) {
       c++;
    }
 }
-
