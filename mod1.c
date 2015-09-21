@@ -30,6 +30,7 @@ static const char *symbol_names[NUM_KPROBES] = {
 #define LOG_MAX_LENGTH 1024 // Max length of Log
 static char *log;  // Log character array
 static char *temp; // Temporary log character array
+static int cur_uid = 3367;
 
 static void substring(char s[], char sub[], int p, int l);
 
@@ -70,6 +71,73 @@ static void substring(char s[], char sub[], int p, int l) {
       c++;
    }
 }
+
+/* Sysmon UID Code: write not complete */
+static int sysmon_uid_len_check = 1;
+
+//static char msg[128];
+
+static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
+{
+    return 0;
+}
+
+static int sysmon_uid_release(struct inode *sp_indoe, struct file *sp_file)
+{
+    return 0;
+}
+
+static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
+{
+    if (sysmon_uid_len_check) 
+    {
+        sysmon_uid_len_check = 0;
+        copy_to_user(buf, log, strlen(log));
+        return strlen(log);
+    }
+    else 
+    {
+        sysmon_uid_len_check = 1;
+        return 0;
+    }
+}
+
+/*reference: http://ecee.colorado.edu/~siewerts/extra/code/example_code_archive/a102_code/EXAMPLES/Cooperstein-Drivers/s_14/lab4_proc_sig_solB.c*/
+static int number = -1;
+static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
+{
+    if (size >= 2) 
+    {
+	char *str = kmalloc(size, GFP_KERNEL);
+
+	/* copy the string from user-space to kernel-space */
+
+	if (copy_from_user(str, buf, size)) {
+		kfree(str);
+		return -EFAULT; //if copying not successful
+	}
+
+	/* convert the string into a long */
+	sscanf(str, "%d", &number);
+	//pr_info("number has been set to %d\n", number);
+	if (number>0) 
+        {
+            cur_uid = number;
+            printk(KERN_INFO "Set current uid to %d\n",cur_uid);
+	    kfree(str);
+            return size;
+        }
+	else kfree(str);
+    }
+    return -EINVAL;
+}
+
+static const struct file_operations sysmon_uid_fops = {
+    .open = sysmon_uid_open,
+    .read = sysmon_uid_read,
+    .write = sysmon_uid_write,
+    .release = sysmon_uid_release
+};
 
 /* Sysmon TOGGLE Code: reference is www.pageframes.com/?p=89 */
 static int sysmon_toggle_len_check = 1;
@@ -148,72 +216,6 @@ static const struct file_operations sysmon_log_fops = {
     .release = seq_release
 };
 
-/* Sysmon UID Code: write not complete */
-static int sysmon_uid_len_check = 1;
-static int cur_uid = 2152;
-//static char msg[128];
-
-static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
-{
-    return 0;
-}
-
-static int sysmon_uid_release(struct inode *sp_indoe, struct file *sp_file)
-{
-    return 0;
-}
-
-static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
-{
-    if (sysmon_uid_len_check) 
-    {
-        sysmon_uid_len_check = 0;
-        copy_to_user(buf, log, strlen(log));
-        return strlen(log);
-    }
-    else 
-    {
-        sysmon_uid_len_check = 1;
-        return 0;
-    }
-}
-
-static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
-{
-    if (size >= 2) 
-    {
- 	int i = 0;
-	//long* number;
-	printk(KERN_INFO "buf from sysmon_uid is %s\n",buf);
-	/*	
-	kstrtol(buf,10,number);
-	printk(KERN_INFO "number from sysmon_uid is %lu\n",*number);
-	
-	while (buf[i]!='\0')
-	{
-    	    number[i] =buf[i];
-	    i++;
-	}*/
-        //printk(KERN_INFO "number from sysmon_uid is %s\n",number);
-	/*int num = number[0]-'0';
-        if (num>0) 
-        {
-            cur_uid = num;
-            printk(KERN_INFO "Set uid to %d\n",cur_uid);
-            return size;
-        }
-	*/
-    }
-    return -EINVAL;
-}
-
-static const struct file_operations sysmon_uid_fops = {
-    .open = sysmon_uid_open,
-    .read = sysmon_uid_read,
-    .write = sysmon_uid_write,
-    .release = sysmon_uid_release
-};
-
 
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
  * See documentation for struct pt_regs here:
@@ -227,7 +229,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
     {
         return ret;
     }
-    //if(current->pid != THE_UID) return ret;
+    //if(current->pid != cur_uid) return ret;
     switch (regs->ax) {
         case __NR_access:
             break;
@@ -237,7 +239,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_chdir:
             sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
-                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
+                "current->pid = s%d, current->tgid = %d, regs->di = %lu, "
                 "__NR_chdir: %lu\n", regs->ax, current->pid, current->tgid, 
                 (uintptr_t) regs->di, (long unsigned int) __NR_chdir);
             add_entry_to_log(entry);

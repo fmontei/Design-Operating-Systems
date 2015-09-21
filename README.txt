@@ -52,7 +52,14 @@ IV. DISABLE/ENABLE LOGGING -- SYSMON_TOGGLE PROC FILE (DEFAULT is enabled)
 4) Type echo 1 > sysmon_toggle to enable logging
 5) Typing dmesg shows a message indicating whether logging was enabled/disabled
 
-III. HELPFUL LINKS
+V. CHANGE UID -- SYSMON_UID PROC FILE
+
+1) Make sure you are superuser (sudo -s)
+2) Go to /proc directory
+3) Type echo uid > sysmon_toggle to set current uid to uid
+4) Typing dmesg shows a message indicating whether current uid has been changed
+
+VI. HELPFUL LINKS
 
 a) Tutorial: http://opensourceforu.efytimes.com/2011/04/kernel-debugging-using-kprobe-and-jprobe/
 b) struct pt_regs src code: http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h
