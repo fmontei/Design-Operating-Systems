@@ -12,7 +12,6 @@ MODULE_DESCRIPTION("KPROBE MODULE");
 MODULE_LICENSE("GPL");
 
 #define NUM_KPROBES 30
-#define THE_UID 2152
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
@@ -148,6 +147,73 @@ static const struct file_operations sysmon_log_fops = {
     .llseek  = seq_lseek,
     .release = seq_release
 };
+
+/* Sysmon UID Code: write not complete */
+static int sysmon_uid_len_check = 1;
+static int cur_uid = 2152;
+//static char msg[128];
+
+static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
+{
+    return 0;
+}
+
+static int sysmon_uid_release(struct inode *sp_indoe, struct file *sp_file)
+{
+    return 0;
+}
+
+static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
+{
+    if (sysmon_uid_len_check) 
+    {
+        sysmon_uid_len_check = 0;
+        copy_to_user(buf, log, strlen(log));
+        return strlen(log);
+    }
+    else 
+    {
+        sysmon_uid_len_check = 1;
+        return 0;
+    }
+}
+
+static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
+{
+    if (size >= 2) 
+    {
+ 	int i = 0;
+	//long* number;
+	printk(KERN_INFO "buf from sysmon_uid is %s\n",buf);
+	/*	
+	kstrtol(buf,10,number);
+	printk(KERN_INFO "number from sysmon_uid is %lu\n",*number);
+	
+	while (buf[i]!='\0')
+	{
+    	    number[i] =buf[i];
+	    i++;
+	}*/
+        //printk(KERN_INFO "number from sysmon_uid is %s\n",number);
+	/*int num = number[0]-'0';
+        if (num>0) 
+        {
+            cur_uid = num;
+            printk(KERN_INFO "Set uid to %d\n",cur_uid);
+            return size;
+        }
+	*/
+    }
+    return -EINVAL;
+}
+
+static const struct file_operations sysmon_uid_fops = {
+    .open = sysmon_uid_open,
+    .read = sysmon_uid_read,
+    .write = sysmon_uid_write,
+    .release = sysmon_uid_release
+};
+
 
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
  * See documentation for struct pt_regs here:
@@ -304,6 +370,7 @@ int my_init_module(void) {
     add_entry_to_log(entry);
     
     proc_create(SYSMON_TOGGLE, 0600, NULL, &sysmon_toggle_fops);
+    proc_create(SYSMON_UID, 0600, NULL, &sysmon_uid_fops);
     proc_create(SYSMON_LOG, 0400, NULL, &sysmon_log_fops);
 
     return 0; 

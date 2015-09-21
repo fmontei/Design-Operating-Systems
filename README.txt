@@ -44,7 +44,7 @@ III. PRINT OUT LOG -- SYSMON_LOG PROC FILE
 2) Go to /proc directory
 3) Type cat sysmon_log (or alternatively, gedit sysmon_log)
 
-IV. DISABLE/ENABLE LOGGING -- SYSMON_TOGGLE PROC FILE
+IV. DISABLE/ENABLE LOGGING -- SYSMON_TOGGLE PROC FILE (DEFAULT is enabled)
 
 1) Make sure you are superuser (sudo -s)
 2) Go to /proc directory
