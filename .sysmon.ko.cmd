@@ -1,0 +1,1 @@
+cmd_/root/Design-Operating-Systems/sysmon.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /root/Design-Operating-Systems/sysmon.ko /root/Design-Operating-Systems/sysmon.o /root/Design-Operating-Systems/sysmon.mod.o
