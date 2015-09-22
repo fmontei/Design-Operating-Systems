@@ -1,1 +1,0 @@
-cmd_/root/Design-Operating-Systems/mod1.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /root/Design-Operating-Systems/mod1.ko /root/Design-Operating-Systems/mod1.o /root/Design-Operating-Systems/mod1.mod.o

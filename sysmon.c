@@ -7,7 +7,7 @@
 #include <linux/slab.h>
 #include <asm-generic/uaccess.h>
 #include <linux/cred.h>
-#include <linux/time.h>
+#include <linux/time.h> /* For timestamp */
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
