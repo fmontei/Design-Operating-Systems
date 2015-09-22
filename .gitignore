@@ -9,3 +9,4 @@
 *.symvers
 *.order
 *.out
+*.cmd
