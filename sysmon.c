@@ -7,6 +7,7 @@
 #include <linux/slab.h>
 #include <asm-generic/uaccess.h>
 #include <linux/cred.h>
+#include <linux/time.h>
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
@@ -16,7 +17,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
-#define LOG_MAX_LENGTH 4096 // Max length of Log
+#define LOG_MAX_LENGTH 8192 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -33,6 +34,20 @@ static char *log;  // Log character array
 static char *temp; // Temporary log character array
 
 static void substring(char s[], char sub[], int p, int l);
+
+static char *get_timestamp(void)
+{   
+    char ret[200];
+    struct timeval t;
+    struct tm broken;
+    do_gettimeofday(&t);
+    time_to_tm(t.tv_sec, 0, &broken);
+
+    sprintf(ret, "Log contents for time = %2d:%2d:%2d.%ld\n", 
+        broken.tm_hour, broken.tm_min, broken.tm_sec, t.tv_usec);
+
+    return ret;
+}
 
 static void add_entry_to_log(char *entry)
 {
@@ -75,7 +90,7 @@ static void substring(char s[], char sub[], int p, int l) {
 static void flush_log(void) {
     kfree(log);
     log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
-    add_entry_to_log("The log was flushed to terminal.\n");
+    add_entry_to_log(get_timestamp());
 }
 
 /* Sysmon UID Code */
@@ -382,8 +397,6 @@ void sysmon_intercept_after(struct kprobe *p, struct pt_regs *regs,
  
 int my_init_module(void) {
     int ret, i = 0;
-    char *entry;
-    entry = "The log is empty.\n";
     
     for ( ; i < NUM_KPROBES; i++) {
         kprobes[i].symbol_name = symbol_names[i];
@@ -400,7 +413,7 @@ int my_init_module(void) {
     printk(KERN_INFO "Sysmon log module successfully initialized.\n"); 
 
     log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
-    add_entry_to_log(entry);
+    add_entry_to_log(get_timestamp());
     
     proc_create(SYSMON_TOGGLE, 0600, NULL, &sysmon_toggle_fops);
     proc_create(SYSMON_UID, 0600, NULL, &sysmon_uid_fops);

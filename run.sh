@@ -7,8 +7,10 @@
 trap cleanup INT
 trap cleanup SIGTSTP
 
+MODULE="sysmon.ko"
+
 function cleanup {
-    rmmod mod1.ko
+    rmmod $MODULE
     echo
     echo "sysmon terminated."
     exit;
@@ -18,7 +20,7 @@ cd /root/Design-Operating-Systems/
 make -C /root/Design-Operating-Systems/
 clear
 
-insmod mod1.ko
+insmod $MODULE
 echo "Default uid = 1000. To change, type echo uid > /proc/sysmon_uid."
 echo "Logging started. Printing log to this terminal periodically."
 echo "To disable logging, type echo 0 > /proc/sysmon_toggle."
