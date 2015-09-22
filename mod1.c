@@ -27,7 +27,7 @@ static const char *symbol_names[NUM_KPROBES] = {
     "sys_wait4", "sys_write"
 };
 
-#define LOG_MAX_LENGTH 1024 // Max length of Log
+#define LOG_MAX_LENGTH 1000000 // Max length of Log
 static char *log;  // Log character array
 static char *temp; // Temporary log character array
 static int cur_uid = 3367;
@@ -36,11 +36,11 @@ static void substring(char s[], char sub[], int p, int l);
 
 static void add_entry_to_log(char *entry)
 {
-    if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH)
+    if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
     {
         strcat(log, entry);
     }
-    else if (strlen(log) + strlen(entry) >= LOG_MAX_LENGTH)
+    else
     {
         char token = '\n';
         int i = 0; 
@@ -56,9 +56,9 @@ static void add_entry_to_log(char *entry)
         kfree(log);
         log = temp;
         
-        if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH)
+        if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
             strcat(log, entry);
-        else if (strlen(log) + strlen(entry) >= LOG_MAX_LENGTH)
+        else
             add_entry_to_log(entry);
     }
 }
@@ -74,8 +74,6 @@ static void substring(char s[], char sub[], int p, int l) {
 
 /* Sysmon UID Code */
 static int sysmon_uid_len_check = 1;
-
-//static char msg[128];
 
 static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
 {
@@ -102,32 +100,32 @@ static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
     }
 }
 
-/*reference: http://ecee.colorado.edu/~siewerts/extra/code/example_code_archive/a102_code/EXAMPLES/Cooperstein-Drivers/s_14/lab4_proc_sig_solB.c*/
+/* Reference: http://ecee.colorado.edu/~siewerts/extra/code/example_code_archive/a102_code/EXAMPLES/Cooperstein-Drivers/s_14/lab4_proc_sig_solB.c */
 static int number = -1;
 static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
 {
     if (size >= 2) 
     {
-	char *str = kmalloc(size, GFP_KERNEL);
+	    char *str = kmalloc(size, GFP_KERNEL);
 
-	/* copy the string from user-space to kernel-space */
+	    /* Copy the string from user-space to kernel-space */
+	    if (copy_from_user(str, buf, size)) {
+		    kfree(str);
+		    return -EFAULT; //if copying not successful
+	    }
 
-	if (copy_from_user(str, buf, size)) {
-		kfree(str);
-		return -EFAULT; //if copying not successful
-	}
+	    /* Convert the string into a long */
+	    sscanf(str, "%d", &number);
 
-	/* convert the string into a long */
-	sscanf(str, "%d", &number);
-	//pr_info("number has been set to %d\n", number);
-	if (number>0) 
+	    if (number > 0) 
         {
             cur_uid = number;
-            printk(KERN_INFO "Set current uid to %d\n",cur_uid);
-	    kfree(str);
+            printk(KERN_INFO "Set current uid to %d\n", cur_uid);
+            kfree(str);
             return size;
         }
-	else kfree(str);
+	    else 
+            kfree(str);
     }
     return -EINVAL;
 }
@@ -285,11 +283,11 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_lseek:
-            /*sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
+            sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
                 "current->pid = %d, current->tgid = %d, regs->di = %lu, "
                 "__NR_lseek: %lu\n", regs->ax, current->pid, current->tgid, 
                 (uintptr_t) regs->di, (long unsigned int) __NR_lseek);
-            add_entry_to_log(entry);*/
+            add_entry_to_log(entry);
             break;
 
         case __NR_mkdir:
@@ -353,7 +351,6 @@ int my_init_module(void) {
     char *entry;
     entry = "The log is empty.\n";
     
-
     for ( ; i < NUM_KPROBES; i++) {
         kprobes[i].symbol_name = symbol_names[i];
         kprobes[i].pre_handler = sysmon_intercept_before; 

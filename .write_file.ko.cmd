@@ -1,0 +1,1 @@
+cmd_/root/Design-Operating-Systems/write_file.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /root/Design-Operating-Systems/write_file.ko /root/Design-Operating-Systems/write_file.o /root/Design-Operating-Systems/write_file.mod.o
