@@ -56,7 +56,8 @@ V. CHANGE UID -- SYSMON_UID PROC FILE
 
 1) Make sure you are superuser (sudo -s)
 2) Go to /proc directory
-3) Type echo uid > sysmon_toggle to set current uid to uid
+3) Type echo uid > sysmon_uid to set current uid to uid
+(To find out what your uid is, type id -u <username> or simply id for the current user's id)
 4) Typing dmesg shows a message indicating whether current uid has been changed
 
 VI. HELPFUL LINKS
