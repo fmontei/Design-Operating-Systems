@@ -808,6 +808,7 @@ deps_/root/Design-Operating-Systems/mod1.o := \
   include/linux/kmemleak.h \
     $(wildcard include/config/debug/kmemleak.h) \
   include/asm-generic/uaccess.h \
+  include/linux/file.h \
 
 /root/Design-Operating-Systems/mod1.o: $(deps_/root/Design-Operating-Systems/mod1.o)
 
