@@ -64,5 +64,6 @@ VI. HELPFUL LINKS
 
 a) Tutorial: http://opensourceforu.efytimes.com/2011/04/kernel-debugging-using-kprobe-and-jprobe/
 b) struct pt_regs src code: http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h
+c) http://ecee.colorado.edu/~siewerts/extra/code/example_code_archive/a102_code/EXAMPLES/Cooperstein-Drivers/s_14/lab4_proc_sig_solB.c
 
 

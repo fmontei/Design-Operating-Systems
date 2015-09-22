@@ -16,7 +16,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
-#define LOG_MAX_LENGTH 10000 // Max length of Log
+#define LOG_MAX_LENGTH 4096 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -50,7 +50,7 @@ static void add_entry_to_log(char *entry)
         }
         i += 2; // Include \n character
         
-        temp = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, __GFP_REPEAT);
+        temp = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
         substring(log, temp, i, LOG_MAX_LENGTH - i);
         
         kfree(log);
@@ -70,6 +70,12 @@ static void substring(char s[], char sub[], int p, int l) {
       sub[c] = s[p + c - 1];
       c++;
    }
+}
+
+static void flush_log(void) {
+    kfree(log);
+    log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
+    add_entry_to_log("The log was flushed to terminal.\n");
 }
 
 /* Sysmon UID Code */
@@ -100,7 +106,6 @@ static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
     }
 }
 
-/* Reference: http://ecee.colorado.edu/~siewerts/extra/code/example_code_archive/a102_code/EXAMPLES/Cooperstein-Drivers/s_14/lab4_proc_sig_solB.c */
 static int sysmon_uid = -1;
 static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
 {
@@ -185,6 +190,23 @@ static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, siz
             return size;
         }
     }
+    if (size == 6) 
+    {
+        char *str = kmalloc(size, GFP_KERNEL);
+
+	    if (copy_from_user(str, buf, size)) {
+		    kfree(str);
+		    return -EFAULT; 
+	    }
+
+        sscanf(buf, "%6s", str);
+        if (strcmp(str, "flush") == 0) 
+        {
+            flush_log();
+        }
+        kfree(str);
+        return size;
+    }
     return -EINVAL;
 }
 
@@ -215,7 +237,6 @@ static const struct file_operations sysmon_log_fops = {
     .release = seq_release
 };
 
-
 /* The example on T-Square uses regs->rax, but I had to use regs->ax
  * See documentation for struct pt_regs here:
  * http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h 
@@ -225,12 +246,10 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
     int ret = 0;
     char entry[200];
     
-
     if (!is_logging_toggled)
     {
         return ret;
     }
-
 
     if (cur_uid != sysmon_uid)
     {
@@ -295,20 +314,20 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_lseek:
             sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
-                "pid = %d, tgid = %d, regs->di = %lu, __NR_chdir: %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_lseek: %lu, "
                 "sysmon_uid = %d\n", 
                 regs->ax, current->pid, current->tgid, 
-                (uintptr_t) regs->di, (long unsigned int) __NR_chdir,
+                (uintptr_t) regs->di, (long unsigned int) __NR_lseek,
                 sysmon_uid);
             add_entry_to_log(entry);
             break;
 
         case __NR_mkdir:
             sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
-                "pid = %d, tgid = %d, regs->di = %lu, __NR_chdir: %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_mkdir: %lu, "
                 "sysmon_uid = %d\n", 
                 regs->ax, current->pid, current->tgid, 
-                (uintptr_t) regs->di, (long unsigned int) __NR_chdir,
+                (uintptr_t) regs->di, (long unsigned int) __NR_mkdir,
                 sysmon_uid);
             add_entry_to_log(entry);
             break;
@@ -380,7 +399,7 @@ int my_init_module(void) {
     
     printk(KERN_INFO "Sysmon log module successfully initialized.\n"); 
 
-    log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, __GFP_REPEAT);
+    log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
     add_entry_to_log(entry);
     
     proc_create(SYSMON_TOGGLE, 0600, NULL, &sysmon_toggle_fops);
