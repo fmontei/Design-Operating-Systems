@@ -6,5 +6,6 @@
 *.txt~
 *.ko
 *~
-Module.symvers
-modules.order
+*.symvers
+*.order
+*.out

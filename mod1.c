@@ -6,6 +6,7 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <asm-generic/uaccess.h>
+#include <linux/cred.h>
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
@@ -15,6 +16,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
+#define LOG_MAX_LENGTH 10000 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -27,10 +29,8 @@ static const char *symbol_names[NUM_KPROBES] = {
     "sys_wait4", "sys_write"
 };
 
-#define LOG_MAX_LENGTH 10000 // Max length of Log
 static char *log;  // Log character array
 static char *temp; // Temporary log character array
-static int cur_uid = 3367;
 
 static void substring(char s[], char sub[], int p, int l);
 
@@ -101,26 +101,27 @@ static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
 }
 
 /* Reference: http://ecee.colorado.edu/~siewerts/extra/code/example_code_archive/a102_code/EXAMPLES/Cooperstein-Drivers/s_14/lab4_proc_sig_solB.c */
-static int number = -1;
+static int sysmon_uid = -1;
 static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
 {
     if (size >= 2) 
     {
 	    char *str = kmalloc(size, GFP_KERNEL);
+        int uid;
 
 	    /* Copy the string from user-space to kernel-space */
 	    if (copy_from_user(str, buf, size)) {
 		    kfree(str);
-		    return -EFAULT; //if copying not successful
+		    return -EFAULT; // if copying not successful
 	    }
 
 	    /* Convert the string into a long */
-	    sscanf(str, "%d", &number);
+	    sscanf(str, "%d", &uid);
 
-	    if (number > 0) 
+	    if (uid > 0) 
         {
-            cur_uid = number;
-            printk(KERN_INFO "Set current uid to %d\n", cur_uid);
+            sysmon_uid = uid;
+            printk(KERN_INFO "Set current uid to %d\n", sysmon_uid);
             kfree(str);
             return size;
         }
@@ -139,7 +140,7 @@ static const struct file_operations sysmon_uid_fops = {
 
 /* Sysmon TOGGLE Code: reference is www.pageframes.com/?p=89 */
 static int sysmon_toggle_len_check = 1;
-static unsigned int on_or_off = 1;
+static unsigned int is_logging_toggled = 1;
 
 static int sysmon_toggle_open(struct inode * sp_inode, struct file *sp_file)
 {
@@ -173,13 +174,13 @@ static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, siz
         const char number = buf[0];
         if (number == '0') 
         {
-            on_or_off = 0;
+            is_logging_toggled = 0;
             printk(KERN_INFO "Sysmon log disabled.\n");
             return size;
         }
         else if (number == '1') 
         {
-            on_or_off = 1;
+            is_logging_toggled = 1;
             printk(KERN_INFO "Sysmon log enabled.\n");
             return size;
         }
@@ -220,14 +221,22 @@ static const struct file_operations sysmon_log_fops = {
  * http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h 
  */
 int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) { 
+    const int cur_uid = get_current_user()->uid.val;
     int ret = 0;
     char entry[200];
+    
 
-    if (!on_or_off)
+    if (!is_logging_toggled)
     {
         return ret;
     }
-    //if(current->pid != cur_uid) return ret;
+
+
+    if (cur_uid != sysmon_uid)
+    {
+        return ret;
+    }    
+
     switch (regs->ax) {
         case __NR_access:
             break;
@@ -236,10 +245,12 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_chdir:
-            sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
-                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
-                "__NR_chdir: %lu\n", regs->ax, current->pid, current->tgid, 
-                (uintptr_t) regs->di, (long unsigned int) __NR_chdir);
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_chdir: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_chdir,
+                sysmon_uid);
             add_entry_to_log(entry);
             break;
 
@@ -283,18 +294,22 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_lseek:
-            sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
-                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
-                "__NR_lseek: %lu\n", regs->ax, current->pid, current->tgid, 
-                (uintptr_t) regs->di, (long unsigned int) __NR_lseek);
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_chdir: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_chdir,
+                sysmon_uid);
             add_entry_to_log(entry);
             break;
 
         case __NR_mkdir:
-            sprintf(entry, "my sysmon_intercept_before: regs->ax = %lu, "
-                "current->pid = %d, current->tgid = %d, regs->di = %lu, "
-                "__NR_mkdir: %lu\n", regs->ax, current->pid, current->tgid, 
-                (uintptr_t) regs->di, (long unsigned int) __NR_mkdir);
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_chdir: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_chdir,
+                sysmon_uid);
             add_entry_to_log(entry);
             break;
 
