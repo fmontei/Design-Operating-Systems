@@ -6,9 +6,6 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <asm-generic/uaccess.h>
-#include <linux/file.h>
-#include <linux/fs.h>
-#include <linux/fcntl.h>
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
@@ -37,23 +34,6 @@ static int cur_uid = 3367;
 
 static void substring(char s[], char sub[], int p, int l);
 
-
-static void write_file(char *filename, char *data)
-{
-  struct file *file;
-  loff_t pos = 0;
-
-  mm_segment_t old_fs = get_fs();
-  set_fs(KERNEL_DS);
-
-  file = filp_open(filename, O_WRONLY|O_CREAT, 0644);
-  if (file) {
-      vfs_write(file, data, strlen(data), &pos);
-      fput(file);
-  }
-  set_fs(old_fs);
-}
-
 static void add_entry_to_log(char *entry)
 {
     if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
@@ -62,7 +42,7 @@ static void add_entry_to_log(char *entry)
     }
     else
     {
-        /*char token = '\n';
+        char token = '\n';
         int i = 0; 
         while (token != log[i])
         {
@@ -79,8 +59,7 @@ static void add_entry_to_log(char *entry)
         if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
             strcat(log, entry);
         else
-            add_entry_to_log(entry);*/
-        write_file("/root/my_log.txt", "fuck you!\n");
+            add_entry_to_log(entry);
     }
 }
 
