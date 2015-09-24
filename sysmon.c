@@ -72,7 +72,6 @@ static void flush_log(void) {
     log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
     add_entry_to_log(get_timestamp());
     lines_omitted = 0;
-    printk(KERN_INFO "sysmon_log flushed.\n");
 }
 
 /* Sysmon UID Code */
