@@ -7,7 +7,7 @@
 #include <linux/slab.h>
 #include <asm-generic/uaccess.h>
 #include <linux/cred.h>
-#include <linux/time.h> /* For timestamp */
+#include <linux/time.h>
 
 MODULE_AUTHOR("Felipe"); 
 MODULE_DESCRIPTION("KPROBE MODULE"); 
@@ -17,7 +17,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
-#define LOG_MAX_LENGTH 8192 // Max length of Log
+#define LOG_MAX_LENGTH 4000 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -32,19 +32,25 @@ static const char *symbol_names[NUM_KPROBES] = {
 
 static char *log;  // Log character array
 static char *temp; // Temporary log character array
-
-static void substring(char s[], char sub[], int p, int l);
+static int lines_omitted = 0;
 
 static char *get_timestamp(void)
 {   
-    char ret[200];
+    char ret[400];
     struct timeval t;
     struct tm broken;
     do_gettimeofday(&t);
     time_to_tm(t.tv_sec, 0, &broken);
 
-    sprintf(ret, "Log contents for time = %2d:%2d:%2d.%ld\n", 
-        broken.tm_hour, broken.tm_min, broken.tm_sec, t.tv_usec);
+    if (lines_omitted == 0)
+        sprintf(ret, "Log contents for time = %2d:%2d:%2d.%ld\n", 
+            broken.tm_hour, broken.tm_min, broken.tm_sec, t.tv_usec);
+    else
+        sprintf(ret, "Log was full. %d lines were omitted.\n"
+            "Log has been flushed to terminal. Beginning new log " 
+            "for time = %2d:%2d:%2d.%ld\n", 
+            lines_omitted, broken.tm_hour, broken.tm_min, 
+            broken.tm_sec, t.tv_usec);
 
     return ret;
 }
@@ -57,40 +63,16 @@ static void add_entry_to_log(char *entry)
     }
     else
     {
-        char token = '\n';
-        int i = 0; 
-        while (token != log[i])
-        {
-            i++;
-        }
-        i += 2; // Include \n character
-        
-        temp = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
-        substring(log, temp, i, LOG_MAX_LENGTH - i);
-        
-        kfree(log);
-        log = temp;
-        
-        if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
-            strcat(log, entry);
-        else
-            add_entry_to_log(entry);
+        lines_omitted++;
     }
-}
-
-static void substring(char s[], char sub[], int p, int l) {
-   int c = 0;
- 
-   while (c < l) {
-      sub[c] = s[p + c - 1];
-      c++;
-   }
 }
 
 static void flush_log(void) {
     kfree(log);
     log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
     add_entry_to_log(get_timestamp());
+    lines_omitted = 0;
+    printk(KERN_INFO "sysmon_log flushed.\n");
 }
 
 /* Sysmon UID Code */
@@ -138,7 +120,7 @@ static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t
 	    /* Convert the string into a long */
 	    sscanf(str, "%d", &uid);
 
-	    if (uid > 0) 
+	    if (uid >= 0) 
         {
             sysmon_uid = uid;
             printk(KERN_INFO "Set current uid to %d\n", sysmon_uid);
@@ -273,9 +255,23 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
     switch (regs->ax) {
         case __NR_access:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_access: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_access,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_brk:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_brk: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_brk,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_chdir:
@@ -289,42 +285,133 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_chmod:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_chmod: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_chmod,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_clone:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_clone: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_clone,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_close:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_close: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_close,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_dup:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_dup: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_dup,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_dup2:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_dup2: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_dup2,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
-        case __NR_execve:
+        case __NR_execve:  
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_execve: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_execve,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_exit_group:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_exit_group: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_exit_group,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_fcntl:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_fcntl: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_fcntl,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_fork:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_fork: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_fork,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_getdents:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_getdents: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_getdents,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_getpid:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_getpid: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_getpid,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_gettid:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_gettid: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_gettid,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_ioctl:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_ioctl: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_ioctl,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_lseek:
@@ -348,39 +435,123 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
             break;
 
         case __NR_mmap:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_mmap: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_mmap,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_munmap:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_munmap: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_munmap,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_open:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_open: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_open,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_pipe:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_pipe: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_pipe,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_read:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_read: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_read,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_rmdir:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_rmdir: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_rmdir,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_select:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_select: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_select,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_stat:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_stat: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_stat,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_fstat:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_fstat: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_fstat,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_lstat:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_lstat: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_lstat,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_wait4:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_wait4: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_wait4,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         case __NR_write:
+            sprintf(entry, "sysmon_intercept_before: regs->ax = %lu, "
+                "pid = %d, tgid = %d, regs->di = %lu, __NR_write: %lu, "
+                "sysmon_uid = %d\n", 
+                regs->ax, current->pid, current->tgid, 
+                (uintptr_t) regs->di, (long unsigned int) __NR_write,
+                sysmon_uid);
+            add_entry_to_log(entry);
             break;
 
         default:
