@@ -57,24 +57,8 @@ static void add_entry_to_log(char *entry)
     }
     else
     {
-        char token = '\n';
-        int i = 0; 
-        while (token != log[i])
-        {
-            i++;
-        }
-        i += 2; // Include \n character
-        
-        temp = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
-        substring(log, temp, i, LOG_MAX_LENGTH - i);
-        
-        kfree(log);
-        log = temp;
-        
-        if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
-            strcat(log, entry);
-        else
-            add_entry_to_log(entry);
+        int i;
+        for (i = strlen(log) - 1
     }
 }
 
