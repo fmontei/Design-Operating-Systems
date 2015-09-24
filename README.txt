@@ -1,3 +1,14 @@
+Files:
+a) sysmon.c -- module
+b) to_file.c -- user-space program that writes string provided to it via
+   run.sh to a file called sysmon.backup
+c) sysmon.backup -- all logging saved here
+d) /proc/sysmon_log -- temporary log (cleared every one second)
+e) /proc/sysmon_uid -- UID to track
+f) /proc/sysmon_toggle -- toggle logging on/off
+   (in addition, run.sh internally passes "flush" to /proc/sysmon_toggle to
+    tell the module to clear sysmon_log)
+
 I. SETUP
 
 Type the following commands into the terminal:
@@ -6,37 +17,24 @@ Type the following commands into the terminal:
 2) Must type sudo -s in terminal to have root privileges
 3) Must initialize project in /root/
 
-II. RUN PROGRAM
+Note: modify lines 43 and 44 in run.sh to the directory in which these
+files are placed. Specifically, change:
 
-Type the following commands into the terminal: 
+line 43: cd /root/Design-Operating-Systems/
+line 44: make -C /root/Design-Operating-Systems/
 
-1) make
-2) insmod mod1.ko
+II. RUN PROGRAM - USING SCRIPT
+A convenient script has been provided to make running this module easy.
 
-Confirm that the probe has been inserted by typing:
+Make sure you have privileges to run run.sh. If not, type: 
+chmod u+x run.sh
 
-3) lsmod | head -n 5
-
-You should see mod1 listed.
-
-Type the following to see the message "Probe inserted  by Felipe":
-
-4) dmesg
-
-Next, trigger the Pre_Handler and Post_Handler by typing:
-
-5) mkdir temp
-
-Again, type:
-
-6) dmesg
-
-You should see the calls to Felipe's Pre_Handler and Felipe's Post_Handler
-and a counter being incremented.
-
-To remove the probe, type:
-
-7) rmmod mod1.ko
+Afterward, type the following:
+1) sudo ./run.sh
+2) If a log file (sysmon.backup) already exists, you will be prompted to 
+delete it (to create a new one) or keep it (and add new entries to it).
+3) Type in a valid UID: e.g., 0 (root) or 1000.
+4) ctrl+c to terminate the module and see the contents of sysmon.backup.
 
 III. PRINT OUT LOG -- SYSMON_LOG PROC FILE
 
