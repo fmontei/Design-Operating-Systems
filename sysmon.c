@@ -31,7 +31,6 @@ static const char *symbol_names[NUM_KPROBES] = {
 };
 static char *log;  // Log character array
 static int lines_omitted = 0;
-static int sysmon_uid_len_check = 1;
 static int sysmon_uid = -1;
 static unsigned int is_logging_toggled = 1;
 
@@ -265,7 +264,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
     switch (regs->ax) {
         case __NR_access:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_access), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -273,7 +272,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_brk:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_brk), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -281,7 +280,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_chdir:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_chdir), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -289,7 +288,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_chmod:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_chmod), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -297,7 +296,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_clone:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_clone), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -305,7 +304,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_close:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_close), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -313,7 +312,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_dup:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_dup), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -321,7 +320,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_dup2:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_dup2), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -329,7 +328,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_execve:  
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_execve), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -337,7 +336,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_exit_group:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_exit_group), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -345,7 +344,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_fcntl:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_fcntl), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -353,7 +352,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_fork:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_fork), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -361,7 +360,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_getdents:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_getdents), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -369,7 +368,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_getpid:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_getpid), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -377,7 +376,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_gettid:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_gettid), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -385,7 +384,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_ioctl:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_ioctl), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -393,7 +392,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_lseek:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_lseek), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -401,7 +400,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_mkdir:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_mkdir), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -409,7 +408,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_mmap:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_mmap), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -417,7 +416,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_munmap:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_munmap), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -425,7 +424,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_open:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_open), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -433,7 +432,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_pipe:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_pipe), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -441,7 +440,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_read:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_read), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -449,7 +448,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_rmdir:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_rmdir), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -457,7 +456,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_select:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_select), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -465,7 +464,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_stat:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_stat), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -473,7 +472,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_fstat:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_fstat), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %lu, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -481,7 +480,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_lstat:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_lstat), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -489,7 +488,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_wait4:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_wait4), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
@@ -497,7 +496,7 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
         case __NR_write:
             sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_write), "
-                "RDI (Arg0): %d, UID: %d, PID: %d, TGID: %d\n"
+                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
                 regs->ax, (uintptr_t) regs->di, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
