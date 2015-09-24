@@ -17,7 +17,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
-#define LOG_MAX_LENGTH 40000 // Max length of Log
+#define LOG_MAX_LENGTH 65536 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -29,14 +29,16 @@ static const char *symbol_names[NUM_KPROBES] = {
     "sys_rmdir", "sys_select", "sys_stat", "sys_fstat", "sys_lstat",
     "sys_wait4", "sys_write"
 };
-
 static char *log;  // Log character array
-static char *temp; // Temporary log character array
 static int lines_omitted = 0;
+static int sysmon_uid_len_check = 1;
+static int sysmon_uid = -1;
+static int sysmon_toggle_len_check = 1;
+static unsigned int is_logging_toggled = 1;
 
 char *get_timestamp(void)
 {   
-    char ret[400];
+    static char ret[400];
     struct timeval t;
     struct tm broken;
     do_gettimeofday(&t);
@@ -60,6 +62,7 @@ static void add_entry_to_log(char *entry)
     if (strlen(log) + strlen(entry) < LOG_MAX_LENGTH - 1)
     {
         strcat(log, entry);
+        log[strlen(log)] = '\0';
     }
     else
     {
@@ -68,15 +71,12 @@ static void add_entry_to_log(char *entry)
 }
 
 static void flush_log(void) {
-    kfree(log);
-    log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
+    log[0] = '\0';
     add_entry_to_log(get_timestamp());
     lines_omitted = 0;
 }
 
 /* Sysmon UID Code */
-static int sysmon_uid_len_check = 1;
-
 static int sysmon_uid_open(struct inode * sp_inode, struct file *sp_file)
 {
     return 0;
@@ -92,8 +92,7 @@ static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
     if (sysmon_uid_len_check) 
     {
         sysmon_uid_len_check = 0;
-        copy_to_user(buf, log, strlen(log));
-        return strlen(log);
+        return 0;
     }
     else 
     {
@@ -101,9 +100,8 @@ static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
         return 0;
     }
 }
-
-static int sysmon_uid = -1;
-static int sysmon_uid_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
+static int sysmon_uid_write(struct file *sp_file, const char __user *buf, 
+                            size_t size, loff_t *offset)
 {
     if (size >= 2) 
     {
@@ -140,9 +138,6 @@ static const struct file_operations sysmon_uid_fops = {
 };
 
 /* Sysmon TOGGLE Code: reference is www.pageframes.com/?p=89 */
-static int sysmon_toggle_len_check = 1;
-static unsigned int is_logging_toggled = 1;
-
 static int sysmon_toggle_open(struct inode * sp_inode, struct file *sp_file)
 {
     return 0;
@@ -153,13 +148,15 @@ static int sysmon_toggle_release(struct inode *sp_indoe, struct file *sp_file)
     return 0;
 }
 
-static int sysmon_toggle_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
+static int sysmon_toggle_read(struct file *sp_file, char __user *buf, size_t size, 
+                              loff_t *offset)
 {
     if (sysmon_toggle_len_check) 
     {
         sysmon_toggle_len_check = 0;
-        copy_to_user(buf, log, strlen(log));
-        return strlen(log);
+        copy_to_user(buf, (int *) &sysmon_toggle_len_check, 
+            sizeof(sysmon_toggle_len_check));
+        return sizeof(sysmon_toggle_len_check);
     }
     else 
     {
@@ -168,7 +165,8 @@ static int sysmon_toggle_read(struct file *sp_file, char __user *buf, size_t siz
     }
 }
 
-static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, size_t size, loff_t *offset)
+static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, 
+                               size_t size, loff_t *offset)
 {
     if (size == 2) // 2 includes the number and \0
     {
@@ -198,6 +196,7 @@ static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, siz
         sscanf(buf, "%6s", str);
         if (strcmp(str, "flush") == 0) 
         {
+            printk(KERN_INFO "Flushing log\n");
             flush_log();
         }
         kfree(str);
@@ -583,6 +582,7 @@ int my_init_module(void) {
     printk(KERN_INFO "Sysmon log module successfully initialized.\n"); 
 
     log = (char *) kmalloc(sizeof(char) * LOG_MAX_LENGTH, GFP_KERNEL);
+    log[0] = '\0';
     add_entry_to_log(get_timestamp());
     
     proc_create(SYSMON_TOGGLE, 0600, NULL, &sysmon_toggle_fops);
