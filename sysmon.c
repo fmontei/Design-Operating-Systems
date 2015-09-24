@@ -33,7 +33,6 @@ static char *log;  // Log character array
 static int lines_omitted = 0;
 static int sysmon_uid_len_check = 1;
 static int sysmon_uid = -1;
-static int sysmon_toggle_len_check = 1;
 static unsigned int is_logging_toggled = 1;
 
 char *get_timestamp(void)
@@ -87,19 +86,27 @@ static int sysmon_uid_release(struct inode *sp_indoe, struct file *sp_file)
     return 0;
 }
 
-static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, loff_t *offset)
+static int sysmon_uid_read(struct file *sp_file, char __user *buf, size_t size, 
+                           loff_t *offset)
 {
-    if (sysmon_uid_len_check) 
+    static int finished = 0;
+    char data[10];
+    
+    if (finished)
     {
-        sysmon_uid_len_check = 0;
+        finished = 0;
         return 0;
     }
-    else 
-    {
-        sysmon_uid_len_check = 1;
-        return 0;
-    }
+    
+    finished = 1;
+    
+    sprintf(data, "%d\n", sysmon_uid);
+    if (copy_to_user(buf, data, strlen(data)))
+        return -EFAULT;
+        
+    return strlen(data);
 }
+
 static int sysmon_uid_write(struct file *sp_file, const char __user *buf, 
                             size_t size, loff_t *offset)
 {
@@ -151,18 +158,22 @@ static int sysmon_toggle_release(struct inode *sp_indoe, struct file *sp_file)
 static int sysmon_toggle_read(struct file *sp_file, char __user *buf, size_t size, 
                               loff_t *offset)
 {
-    if (sysmon_toggle_len_check) 
+    static int finished = 0;
+    char data[10];
+    
+    if (finished)
     {
-        sysmon_toggle_len_check = 0;
-        copy_to_user(buf, (int *) &sysmon_toggle_len_check, 
-            sizeof(sysmon_toggle_len_check));
-        return sizeof(sysmon_toggle_len_check);
-    }
-    else 
-    {
-        sysmon_toggle_len_check = 1;
+        finished = 0;
         return 0;
     }
+    
+    finished = 1;
+    
+    sprintf(data, "%d\n", is_logging_toggled);
+    if (copy_to_user(buf, data, strlen(data)))
+        return -EFAULT;
+        
+    return strlen(data);
 }
 
 static int sysmon_toggle_write(struct file *sp_file, const char __user *buf, 
