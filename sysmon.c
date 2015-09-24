@@ -17,7 +17,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
-#define LOG_MAX_LENGTH 4000 // Max length of Log
+#define LOG_MAX_LENGTH 40000 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -34,7 +34,7 @@ static char *log;  // Log character array
 static char *temp; // Temporary log character array
 static int lines_omitted = 0;
 
-static char *get_timestamp(void)
+char *get_timestamp(void)
 {   
     char ret[400];
     struct timeval t;

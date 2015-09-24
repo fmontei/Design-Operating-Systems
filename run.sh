@@ -37,7 +37,7 @@ while [ true ]; do
     if [ $duration == $increment ] 
         then
             ./to_file "$( cat /proc/sysmon_log )"
-            cat /proc/sysmon_log
+            awk 'NR==1, NR==50' /proc/sysmon_log
             echo "flush" > /proc/sysmon_toggle
             increment=$(( increment + 5 ))
     fi
