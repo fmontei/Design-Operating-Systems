@@ -17,7 +17,7 @@ MODULE_LICENSE("GPL");
 #define SYSMON_LOG "sysmon_log"
 #define SYSMON_UID "sysmon_uid"
 #define SYSMON_TOGGLE "sysmon_toggle"
-#define LOG_MAX_LENGTH 65536 // Max length of Log
+#define LOG_MAX_LENGTH 262144 // Max length of Log
 
 static struct kprobe kprobes[NUM_KPROBES];
 static const char *symbol_names[NUM_KPROBES] = {
@@ -71,6 +71,8 @@ static void add_entry_to_log(char *entry)
 static void flush_log(void) {
     log[0] = '\0';
     add_entry_to_log(get_timestamp());
+    if (!is_logging_toggled)
+        add_entry_to_log("*** Logging has been disabled. ***\n");
     lines_omitted = 0;
 }
 
