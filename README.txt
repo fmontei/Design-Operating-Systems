@@ -8,6 +8,7 @@ e) /proc/sysmon_uid -- UID to track
 f) /proc/sysmon_toggle -- toggle logging on/off
    (in addition, run.sh internally passes "flush" to /proc/sysmon_toggle to
     tell the module to clear sysmon_log)
+g) rogue.c -- a rogue user-space program that opens a test.dat file and writes messages iteratively to that file. Most function calls included are system calls. 
 
 I. SETUP
 
@@ -58,7 +59,18 @@ V. CHANGE UID -- SYSMON_UID PROC FILE
 (To find out what your uid is, type id -u <username> or simply id for the current user's id)
 4) Typing dmesg shows a message indicating whether current uid has been changed
 
-VI. HELPFUL LINKS
+VI. RUN the rogue program
+
+1) Make sure you are superuser (sudo -s)
+2) Go to /root directory
+3) Make sure no test.dat exists in the directory
+3) Type gcc rogue.c -o rogue to compile
+4) Type ./rogue to run
+5) rm test.dat
+
+When you also run our interposer to keep track of the log, you can see tons of write() system call printed out during the execution of rogue.
+
+VII. HELPFUL LINKS
 
 a) Tutorial: http://opensourceforu.efytimes.com/2011/04/kernel-debugging-using-kprobe-and-jprobe/
 b) struct pt_regs src code: http://lxr.free-electrons.com/source/arch/x86/include/asm/ptrace.h

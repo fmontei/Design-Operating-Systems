@@ -18,11 +18,6 @@ if (fd != -1)
    	write(fd, message, sizeof(message));
    }
    //lseek(fd, 0L, 0);     /* go back to the beginning of the file */
-/*   
-   if (read(fd, buffer, sizeof(message)) == sizeof(message))
-      printf("\"%s\" was written to test.dat\n", buffer);
-   else
-      printf("*** error reading test.dat ***\n");*/
    close (fd);
    }
 else
