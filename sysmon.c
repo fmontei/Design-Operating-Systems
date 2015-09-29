@@ -265,241 +265,241 @@ int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) {
 
     switch (regs->ax) {
         case __NR_access:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_access), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_access), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_brk:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_brk), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_brk), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_chdir:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_chdir), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_chdir), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_chmod:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_chmod), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_chmod), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_clone:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_clone), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_clone), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_close:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_close), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_close), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_dup:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_dup), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_dup), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_dup2:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_dup2), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_dup2), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_execve:  
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_execve), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_execve), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_exit_group:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_exit_group), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_exit_group), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_fcntl:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_fcntl), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_fcntl), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_fork:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_fork), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_fork), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_getdents:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_getdents), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_getdents), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_getpid:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_getpid), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_getpid), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_gettid:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_gettid), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_gettid), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_ioctl:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_ioctl), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_ioctl), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_lseek:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_lseek), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_lseek), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_mkdir:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_mkdir), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_mkdir), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_mmap:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_mmap), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_mmap), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_munmap:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_munmap), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_munmap), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_open:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_open), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_open), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_pipe:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_pipe), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_pipe), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_read:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_read), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_read), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_rmdir:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_rmdir), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_rmdir), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_select:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_select), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_select), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_stat:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_stat), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_stat), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_fstat:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_fstat), "
-                "RDI (Arg0): %lu, UID: %d, PID: %lu, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_fstat), "
+                "RDI (Arg0): %lu, Arg1: %lu, UID: %d, PID: %lu, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_lstat:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_lstat), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_lstat), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_wait4:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_wait4), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_wait4), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;
 
         case __NR_write:
-            sprintf(entry, "Sysmon intercept before. RAX: %lu (__NR_write), "
-                "RDI (Arg0): %lu, UID: %d, PID: %d, TGID: %d\n",
-                regs->ax, (uintptr_t) regs->di, sysmon_uid, 
+            sprintf(entry, "RAX: %lu (__NR_write), "
+                "Arg0: %lu, Arg1: %lu, UID: %d, PID: %d, TGID: %d\n",
+                regs->ax, (uintptr_t) regs->di, (uintptr_t) regs->si, sysmon_uid, 
                 current->pid, current->tgid);
             add_entry_to_log(entry);
             break;

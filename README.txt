@@ -68,7 +68,43 @@ VI. RUN the rogue program
 4) Type ./rogue to run
 5) rm test.dat
 
-When you also run our interposer to keep track of the log, you can see tons of write() system call printed out during the execution of rogue.
+When you also run our interposer (if rogue is run in the current directory, UID will be 0) to keep track of the log, you can see tons of write() system call (along with the PID for rogue program) printed out during the execution of rogue.
+Example when PID is 5290 (more info in the project description):
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
+RAX: 1 (__NR_write), Arg0: 3, Arg1: 6295648, UID: 0, PID: 5290, TGID: 5290
 
 VII. HELPFUL LINKS
 
