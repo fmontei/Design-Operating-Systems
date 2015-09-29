@@ -33,7 +33,7 @@ chmod u+x run.sh
 Afterward, type the following:
 1) sudo ./run.sh
 2) If a log file (sysmon.backup) already exists, you will be prompted to 
-delete it (to create a new one) or keep it (and add new entries to it).
+   delete it (to create a new one) or keep it (and add new entries to it).
 3) Type in a valid UID: e.g., 0 (root) or 1000.
 4) ctrl+c to terminate the module and see the contents of sysmon.backup.
 
@@ -56,7 +56,7 @@ V. CHANGE UID -- SYSMON_UID PROC FILE
 1) Make sure you are superuser (sudo -s)
 2) Go to /proc directory
 3) Type echo uid > sysmon_uid to set current uid to uid
-(To find out what your uid is, type id -u <username> or simply id for the current user's id)
+   (To find out what your uid is, type id -u <username> or simply id for the current user's id)
 4) Typing dmesg shows a message indicating whether current uid has been changed
 
 VI. RUN the rogue program
