@@ -131,28 +131,23 @@ int class_mutex_lock(class_mutex_ptr cmutex)
   pthread_monitor *this_monitor = get_thread_by_id(this_thread_id);
   pthread_monitor *other_monitor = get_other_thread_by_id(this_thread_id);
   
-  if (other_monitor == NULL) {
-    printf("ERROR: IS NULL\n");
+  if (this_monitor == NULL || other_monitor == NULL) {
+    printf("ERROR: one of the monitors is NULL\n");
     exit(1);
-  } 
-  
-  printf("OTHER COUNT = %d\n", other_monitor->count);
+  }   
   
   while (other_monitor->count > 0) {
-    printf("WAITING...\n");
-    //exit(1);
+    assert(this_monitor->count == 0);
     pthread_cond_wait(&count_cond, &count_mutex);
     other_monitor = get_other_thread_by_id(this_thread_id);
   
-    if (other_monitor == NULL) {
-      printf("ERROR: IS NULL\n");
+    if (this_monitor == NULL || other_monitor == NULL) {
+      printf("ERROR: one of the monitors is NULL\n");
       exit(1);
     }  
   }
   
   this_monitor->count += 1;
-  
-  // printf("THIS COUNT = %d\n", this_monitor->count);
     
   pthread_mutex_unlock(&count_mutex); // Unlock
   
@@ -178,24 +173,19 @@ int class_mutex_unlock(class_mutex_ptr cmutex)
   pthread_monitor *other_monitor = get_other_thread_by_id(this_thread_id);
   
   if (this_monitor == NULL || other_monitor == NULL) {
-    printf("ERROR: IS NULL\n");
+    printf("ERROR: one of the monitors is NULL\n");
     exit(1);
-  } 
+  }
   
   assert(this_monitor->count == 1 || this_monitor->count == 2);
   assert(other_monitor->count == 0);
   
   this_monitor->count -= 1;
   
-  printf("HI\n");
-  
   if (this_monitor->count == 0) {
-    printf("SIGNALLING...\n");
-    //exit(1);
+    assert(other_monitor->count == 0);
     pthread_cond_signal(&count_cond);
   }
-  
-  // printf("THIS COUNT = %d\n", this_monitor->count);
     
   pthread_mutex_unlock(&count_mutex); // Unlock
   
