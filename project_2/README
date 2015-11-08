@@ -1,0 +1,10 @@
+To start, all commands are in quotes the commands do not need the quotes:
+
+1) run "make lib" or "make all"
+
+2) run "export LD_LIBRARY_PATH=$(pwd):$LD_LIBRARY_PATH"
+
+3) run "./bestoffer"
+
+4) The program should stall after printing some output.  If anything else happens, seek help.
+
