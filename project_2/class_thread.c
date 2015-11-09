@@ -11,19 +11,12 @@ typedef struct {
   bool initialized;
 } pthread_monitor;
 
-static pthread_monitor thread_monitor[NUM_THREAD] = 
- {{.count = 0, .initialized = false}, 
-  {.count = 0, .initialized = false}};
+static pthread_monitor thread_monitor[NUM_THREAD];
 
-void init_pthread_monitor(pthread_t thread_id) {
-  if (!thread_monitor[0].initialized) {
-    thread_monitor[0].count = 0;
-    thread_monitor[0].thread_id = thread_id;
-    thread_monitor[0].initialized = true;
-  } else if (!thread_monitor[1].initialized) {
-    thread_monitor[1].count = 0;
-    thread_monitor[1].thread_id = thread_id;
-    thread_monitor[1].initialized = true;
+void init_pthread_monitor(pthread_t thread_id, int index) {
+  if (index == 0 || index == 1) {
+    thread_monitor[index].count = 0;
+    thread_monitor[index].thread_id = thread_id;
   }
 }
 
@@ -206,6 +199,7 @@ int class_mutex_unlock(class_mutex_ptr cmutex)
 /* Two threads and two mutexes are initially created */
 int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void * arg, int * num_of_mutexes)
 {
+  static int index = 0; 
   pthread_t temp_pthread;
   if(pthread_create(&temp_pthread, NULL, start, arg))
   {
@@ -216,13 +210,13 @@ int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void *
   //Hacking a bit to get everything working correctly
   memcpy(cthread, &temp_pthread, sizeof(pthread_t));
   printf("THREAD ID CREATE = %d\n", (int) temp_pthread);
-  init_pthread_monitor(temp_pthread);
+  init_pthread_monitor(temp_pthread, index++);
 
   return 0;
 }
   
 int class_thread_join(class_thread_t cthread, void ** retval)
-{
+{ 
   pthread_t temp_pthread;
   memcpy(&temp_pthread, &cthread, sizeof(pthread_t));
 
