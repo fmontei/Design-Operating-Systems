@@ -1,6 +1,8 @@
 #include "class_thread.h"
 
 #define NUM_THREAD 2
+#define TRUE 1
+#define FALSE 0
 
 static pthread_mutex_t count_mutex;
 static pthread_cond_t count_cond;
@@ -8,12 +10,11 @@ static pthread_cond_t count_cond;
 typedef struct {
   int count;
   pthread_t thread_id;
-  bool initialized;
 } pthread_monitor;
 
 static pthread_monitor thread_monitor[NUM_THREAD];
 
-void init_pthread_monitor(pthread_t thread_id, int index) {
+void nodeadlock_init(pthread_t thread_id, int index) {
   if (index == 0 || index == 1) {
     thread_monitor[index].count = 0;
     thread_monitor[index].thread_id = thread_id;
@@ -32,10 +33,10 @@ pthread_monitor *get_thread_by_id(pthread_t thread_id) {
 
 pthread_monitor *get_other_thread_by_id(pthread_t thread_id) {
   int i;
-  bool found = false;
+  unsigned int found = FALSE;
   for (i = 0; i < NUM_THREAD; i++) {
     if (thread_monitor[i].thread_id == thread_id) {
-      found = true;
+      found = TRUE;
       break;
     }
   }
@@ -45,7 +46,7 @@ pthread_monitor *get_other_thread_by_id(pthread_t thread_id) {
   else return NULL;
 }
 
-void monitor_pthread_mutex_lock(pthread_t this_thread_id) {
+void nodeadlock_mutex_lock(pthread_t this_thread_id) {
   pthread_mutex_lock(&count_mutex); // Lock 
   
   pthread_monitor *this_monitor = get_thread_by_id(this_thread_id);
@@ -72,7 +73,7 @@ void monitor_pthread_mutex_lock(pthread_t this_thread_id) {
   pthread_mutex_unlock(&count_mutex); // Unlock
 }
 
-void monitor_pthread_mutex_unlock(pthread_t this_thread_id) {
+void nodeadlock_mutex_unlock(pthread_t this_thread_id) {
   pthread_mutex_lock(&count_mutex); // Lock 
   
   pthread_monitor *this_monitor = get_thread_by_id(this_thread_id);
@@ -94,6 +95,16 @@ void monitor_pthread_mutex_unlock(pthread_t this_thread_id) {
   }
     
   pthread_mutex_unlock(&count_mutex); // Unlock
+}
+
+void nodeadlock(char *action, pthread_t thread_id, int index) {
+  if (strcmp(action, "init") == 0) {
+    nodeadlock_init(thread_id, index);
+  } else if (strcmp(action, "lock") == 0) {
+    nodeadlock_mutex_lock(thread_id);
+  } else if (strcmp(action, "unlock") == 0) {
+    nodeadlock_mutex_unlock(thread_id);
+  } 
 }
 
 int allocate_mutex(class_mutex_t *cmutex)
@@ -168,7 +179,7 @@ int class_mutex_lock(class_mutex_ptr cmutex)
   pthread_t thread_id = pthread_self();
   printf("THREAD ID (LOCK) = %d\n", (int) thread_id);
 
-  monitor_pthread_mutex_lock(thread_id);
+  nodeadlock("lock", thread_id, -1 /* Unusued arg */);
   
   if(pthread_mutex_lock(&cmutex->mutex))
   {
@@ -185,7 +196,7 @@ int class_mutex_unlock(class_mutex_ptr cmutex)
   pthread_t thread_id = pthread_self();
   printf("THREAD ID (UNLOCK) = %d\n", (int) thread_id);
   
-  monitor_pthread_mutex_unlock(thread_id);
+  nodeadlock("unlock", thread_id, -1 /* Unusued arg */);
   
   if(pthread_mutex_unlock(&cmutex->mutex))
   {
@@ -210,7 +221,7 @@ int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void *
   //Hacking a bit to get everything working correctly
   memcpy(cthread, &temp_pthread, sizeof(pthread_t));
   printf("THREAD ID CREATE = %d\n", (int) temp_pthread);
-  init_pthread_monitor(temp_pthread, index++);
+  nodeadlock("init", temp_pthread, index++);
 
   return 0;
 }
