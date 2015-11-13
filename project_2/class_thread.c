@@ -1,4 +1,5 @@
 #include "class_thread.h"
+#include <unistd.h>
 
 #define NUM_THREAD 2
 #define TRUE 1
@@ -98,13 +99,16 @@ void nodeadlock_mutex_unlock(pthread_t this_thread_id) {
 }
 
 void nodeadlock(char *action, pthread_t thread_id, int index) {
-  if (strcmp(action, "init") == 0) {
+  printf("Calling nodeadlock...\n");
+  int retval = syscall(318, action, (int *) &thread_id, index);
+  exit(1);
+  /*if (strcmp(action, "init") == 0) {
     nodeadlock_init(thread_id, index);
   } else if (strcmp(action, "lock") == 0) {
     nodeadlock_mutex_lock(thread_id);
   } else if (strcmp(action, "unlock") == 0) {
     nodeadlock_mutex_unlock(thread_id);
-  } 
+  }*/ 
 }
 
 int allocate_mutex(class_mutex_t *cmutex)
