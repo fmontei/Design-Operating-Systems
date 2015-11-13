@@ -98,14 +98,14 @@ void nodeadlock_mutex_unlock(int this_thread_id) {
   pthread_mutex_unlock(&count_mutex); // Unlock
 }
 
-void nodeadlock(char *action, pthread_t thread_id, int index) {
+void nodeadlock(char *action, int *thread_id, int index) {
   printf("Calling nodeadlock...\n");
-  int retval = syscall(318, action, (int *) &thread_id, index);
+  if (action != NULL && thread_id != NULL) {
+    int retval = syscall(318, action, &thread_id, index);
+  }
   /*if (strcmp(action, "init") == 0) {
     nodeadlock_init(thread_id, index);
   }*/ 
-    nodeadlock_mutex_unlock(*thread_id);
-  } 
 }
 
 int allocate_mutex(class_mutex_t *cmutex)
