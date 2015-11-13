@@ -54,13 +54,15 @@ pthread_monitor *get_other_thread_by_id(int thread_id) {
 void nodeadlock_mutex_lock(int this_thread_id) {
   pthread_monitor *this_monitor, *other_monitor;
 
-  mutex_lock(&count_mutex); // Lock 
+  mutex_trylock(&count_mutex); // Lock 
   
   this_monitor = get_thread_by_id(this_thread_id);
   other_monitor = get_other_thread_by_id(this_thread_id);
   
   if (this_monitor == NULL || other_monitor == NULL) {
-    printk(KERN_ALERT "ERROR: one of the monitors is NULL\n");
+    // printk(KERN_INFO "ERROR: one of the monitors is NULL\n");
+    mutex_unlock(&count_mutex); // Unlock
+    return;
   }   
   
   while (other_monitor->count > 0) {
@@ -69,7 +71,8 @@ void nodeadlock_mutex_lock(int this_thread_id) {
     other_monitor = get_other_thread_by_id(this_thread_id);
   
     if (this_monitor == NULL || other_monitor == NULL) {
-      printk(KERN_ALERT "ERROR: one of the monitors is NULL\n");
+      // printk(KERN_INFO "ERROR: one of the monitors is NULL\n");
+      mutex_unlock(&count_mutex); // Unlock
       return;
     }  
   }
@@ -82,13 +85,14 @@ void nodeadlock_mutex_lock(int this_thread_id) {
 void nodeadlock_mutex_unlock(int this_thread_id) {
   pthread_monitor *this_monitor, *other_monitor;  
 
-  mutex_lock(&count_mutex); // Lock 
+  mutex_trylock(&count_mutex); // Lock 
   
   this_monitor = get_thread_by_id(this_thread_id);
   other_monitor = get_other_thread_by_id(this_thread_id);
   
   if (this_monitor == NULL || other_monitor == NULL) {
-    printk(KERN_ALERT "ERROR: one of the monitors is NULL\n");
+    // printk(KERN_INFO "ERROR: one of the monitors is NULL\n");
+    mutex_unlock(&count_mutex); // Unlock
     return;
   }
   
@@ -102,14 +106,14 @@ void nodeadlock_mutex_unlock(int this_thread_id) {
   mutex_unlock(&count_mutex); // Unlock
 }
 
-asmlinkage long sys_nodeadlock(const char *action, int *thread_id, int index)
+asmlinkage long sys_nodeadlock(const char *action, int thread_id, int index)
 {
   if (strcmp(action, "init") == 0) {
-    nodeadlock_init(*thread_id, index);
+    nodeadlock_init(thread_id, index);
   } else if (strcmp(action, "lock") == 0) {
-    nodeadlock_mutex_lock(*thread_id);
+    nodeadlock_mutex_lock(thread_id);
   } else if (strcmp(action, "unlock") == 0) {
-    nodeadlock_mutex_unlock(*thread_id);
+    nodeadlock_mutex_unlock(thread_id);
   }
   return 0;
 }
