@@ -9,22 +9,37 @@ typedef struct {
   int thread_id;
 } pthread_monitor;
 
-static struct mutex count_mutex;
+static DEFINE_MUTEX(count_mutex); // INITIALIZE MUTEX CODE HERE
 static DECLARE_WAIT_QUEUE_HEAD(wq);
 static pthread_monitor first_monitor;
 static pthread_monitor second_monitor;
 
 long nodeadlock_init(int thread_id, int index) {
   if (index == 0) {
-    // mutex_init(&count_mutex); // init elsewhere
     first_monitor.count = 0;
     first_monitor.thread_id = thread_id;
+
+    second_monitor.count = 0;
+    second_monitor.thread_id = -1;
+
+    // Wait for other thread to initialize
+    mutex_lock_interruptible(&count_mutex);
+    while (1)
+      // pthread_cond_wait(&count_cond, &count_mutex);
+    mutex_unlock(&count_mutex);
+
     printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
     return 0;
   } else if (index == 1) {
     second_monitor.count = 0;
     second_monitor.thread_id = thread_id;
+    
+    // Now that the second thread is initialized, unlock the first
+    mutex_lock_interruptible(&count_mutex);
+    // pthread_cond_signal(&count_cond);
+    mutex_unlock(&count_mutex);
+    
     printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
     return 0;
@@ -56,24 +71,21 @@ long nodeadlock_mutex_lock(int this_thread_id) {
   this_monitor = NULL;
   other_monitor = NULL;
 
-  mutex_lock(&count_mutex); // Lock MUST be used, not trylock
+  mutex_lock_interruptible(&count_mutex); // Lock MUST be used instead of trylock
   
   this_monitor = get_thread_by_id(this_thread_id);
   other_monitor = get_other_thread_by_id(this_thread_id);
 
   if (this_monitor == NULL || other_monitor == NULL) {
-    // printk(KERN_INFO "ERROR: one of the monitors is NULL\n");
     mutex_unlock(&count_mutex); // Unlock
     return -1;
   } 
   
   while (other_monitor->count > 0) {
-    // pthread_cond_wait(&count_cond, &count_mutex);
     // wait_event_interruptible(wq, (other_monitor->count > 0));    
     other_monitor = get_other_thread_by_id(this_thread_id);
   
     if (other_monitor == NULL) {
-      // printk(KERN_INFO "ERROR: one of the monitors is NULL\n");
       mutex_unlock(&count_mutex); // Unlock
       return -1;
     }  
@@ -89,12 +101,11 @@ long nodeadlock_mutex_unlock(int this_thread_id) {
   pthread_monitor *this_monitor;
   this_monitor = NULL;
 
-  mutex_trylock(&count_mutex); // Lock 
+  mutex_lock_interruptible(&count_mutex); // Lock 
   
   this_monitor = get_thread_by_id(this_thread_id);
   
   if (this_monitor == NULL) {
-    // printk(KERN_INFO "ERROR: one of the monitors is NULL\n");
     mutex_unlock(&count_mutex); // Unlock
     return -1;
   } 
@@ -102,7 +113,6 @@ long nodeadlock_mutex_unlock(int this_thread_id) {
   this_monitor->count -= 1;
   
   if (this_monitor->count == 0) {
-    // pthread_cond_signal(&count_cond);
     // wake_up_interruptible(&wq);
   }
     
@@ -121,3 +131,4 @@ asmlinkage long sys_nodeadlock(const char *action, int thread_id, int index)
   }
   return -1;
 }
+

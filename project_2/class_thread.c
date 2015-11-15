@@ -21,8 +21,10 @@ long nodeadlock_init(int thread_id, int index) {
     second_monitor.thread_id = -1;
 
     // Wait for other thread to initialize
+    pthread_mutex_lock(&count_mutex);
     while (1)
       pthread_cond_wait(&count_cond, &count_mutex);
+    pthread_mutex_unlock(&count_mutex);
 
     printf("nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
@@ -30,7 +32,12 @@ long nodeadlock_init(int thread_id, int index) {
   } else if (index == 1) {
     second_monitor.count = 0;
     second_monitor.thread_id = thread_id;
+    
+    // Now that the second thread is initialized, unlock the first
+    pthread_mutex_lock(&count_mutex);
     pthread_cond_signal(&count_cond);
+    pthread_mutex_unlock(&count_mutex);
+    
     printf("nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
     return 0;
