@@ -16,12 +16,21 @@ long nodeadlock_init(int thread_id, int index) {
   if (index == 0) {
     first_monitor.count = 0;
     first_monitor.thread_id = thread_id;
+
+    second_monitor.count = 0;
+    second_monitor.thread_id = -1;
+
+    // Wait for other thread to initialize
+    while (1)
+      pthread_cond_wait(&count_cond, &count_mutex);
+
     printf("nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
     return 0;
   } else if (index == 1) {
     second_monitor.count = 0;
     second_monitor.thread_id = thread_id;
+    pthread_cond_signal(&count_cond);
     printf("nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
     return 0;
@@ -192,7 +201,10 @@ int class_mutex_lock(class_mutex_ptr cmutex)
   printf("THREAD ID (LOCK) = %d\n", (int) thread_id);
 
   int retval = nodeadlock("lock", (int) thread_id, -1 /* Unusued arg */);
-  if (retval == -1) exit(1);
+  if (retval == -1) {
+    printf("Failed, terminating.\n");
+    exit(1);
+  }
   
   if(pthread_mutex_lock(&cmutex->mutex))
   {
@@ -210,7 +222,10 @@ int class_mutex_unlock(class_mutex_ptr cmutex)
   printf("THREAD ID (UNLOCK) = %d\n", (int) thread_id);
   
   int retval = nodeadlock("unlock", (int) thread_id, -1 /* Unusued arg */);
-  if (retval == -1) exit(1);
+  if (retval == -1) {
+    printf("Failed, terminating.\n");
+    exit(1);
+  }
   
   if(pthread_mutex_unlock(&cmutex->mutex))
   {
@@ -236,7 +251,10 @@ int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void *
   memcpy(cthread, &temp_pthread, sizeof(pthread_t));
   printf("THREAD ID CREATE = %d\n", (int) temp_pthread);
   int retval = nodeadlock("init", (int) temp_pthread, index++);
-  if (retval == -1) exit(1);
+  if (retval == -1) {
+    printf("Failed, terminating.\n");
+    exit(1);
+  }
 
   return 0;
 }
