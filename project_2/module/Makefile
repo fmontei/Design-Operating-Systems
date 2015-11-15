@@ -1,5 +1,5 @@
 obj-m += nodeadlock_module.o
-KDIR= /lib/modules/$(shell uname -r)/build
+KDIR= /lib/modules/3.13.0-62-generic/build
 all: 
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules 
 clean: 

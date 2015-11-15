@@ -4,27 +4,25 @@
 typedef struct {
   int count;
   int thread_id;
+  int ready;
 } pthread_monitor;
 
 static pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t count_cond;
+static pthread_cond_t count_cond, init_cond;
 // static DECLARE_WAIT_QUEUE_HEAD(wq);
 static pthread_monitor first_monitor;
 static pthread_monitor second_monitor;
 
 long nodeadlock_init(int thread_id, int index) {
+  printf("NODEADLOCK_INIT index = %d\n", index);
   if (index == 0) {
     first_monitor.count = 0;
     first_monitor.thread_id = thread_id;
+    first_monitor.ready = 1;
 
     second_monitor.count = 0;
     second_monitor.thread_id = -1;
-
-    // Wait for other thread to initialize
-    pthread_mutex_lock(&count_mutex);
-    while (1)
-      pthread_cond_wait(&count_cond, &count_mutex);
-    pthread_mutex_unlock(&count_mutex);
+    second_monitor.ready = 0;
 
     printf("nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
@@ -32,11 +30,7 @@ long nodeadlock_init(int thread_id, int index) {
   } else if (index == 1) {
     second_monitor.count = 0;
     second_monitor.thread_id = thread_id;
-    
-    // Now that the second thread is initialized, unlock the first
-    pthread_mutex_lock(&count_mutex);
-    pthread_cond_signal(&count_cond);
-    pthread_mutex_unlock(&count_mutex);
+    second_monitor.ready = 1;
     
     printf("nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
@@ -79,7 +73,7 @@ long nodeadlock_mutex_lock(int this_thread_id) {
     return -1;
   } 
   
-  while (other_monitor->count > 0) {
+  while (other_monitor->count > 0 || other_monitor->ready == 0) {
     pthread_cond_wait(&count_cond, &count_mutex);
     // wait_event_interruptible(wq, (other_monitor->count > 0));    
     other_monitor = get_other_thread_by_id(this_thread_id);
@@ -256,7 +250,8 @@ int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void *
 
   //Hacking a bit to get everything working correctly
   memcpy(cthread, &temp_pthread, sizeof(pthread_t));
-  printf("THREAD ID CREATE = %d\n", (int) temp_pthread);
+  printf("THREAD ID CREATE thread_id = %d, index = %d\n", (int) temp_pthread, 
+    index);
   int retval = nodeadlock("init", (int) temp_pthread, index++);
   if (retval == -1) {
     printf("Failed, terminating.\n");
