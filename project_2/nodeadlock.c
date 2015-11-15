@@ -16,7 +16,7 @@ static pthread_monitor second_monitor;
 
 long nodeadlock_init(int thread_id, int index) {
   if (index == 0) {
-    mutex_init(&count_mutex);
+    // mutex_init(&count_mutex); // init elsewhere
     first_monitor.count = 0;
     first_monitor.thread_id = thread_id;
     printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
@@ -56,7 +56,7 @@ long nodeadlock_mutex_lock(int this_thread_id) {
   this_monitor = NULL;
   other_monitor = NULL;
 
-  mutex_trylock(&count_mutex); // Lock 
+  mutex_lock(&count_mutex); // Lock MUST be used, not trylock
   
   this_monitor = get_thread_by_id(this_thread_id);
   other_monitor = get_other_thread_by_id(this_thread_id);
