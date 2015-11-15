@@ -2,50 +2,57 @@
 #include <linux/kprobes.h>
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/proc_fs.h>
-#include <linux/seq_file.h>
-#include <linux/slab.h>
-#include <asm-generic/uaccess.h>
-#include <linux/cred.h>
-#include <linux/time.h>
+#include <linux/string.h>
 
-static struct kprobe nodeadlock_kprobe;
+static struct jprobe nodeadlock_probe;
 
-int sysmon_intercept_before(struct kprobe *p, struct pt_regs *regs) { 
-    const int cur_uid = get_current_user()->uid.val;
-    int ret = 0;
-    return ret;
-} 
- 
-void sysmon_intercept_after(struct kprobe *p, struct pt_regs *regs, 
-    unsigned long flags) { 
-    /* Here you could capture the return code if you wanted. */
-} 
+static long j_nodeadlock(const char *action, int thread_id, int index)
+{
+    int retval = 0;
 
-int my_init_module(void) {
+    if (action == NULL || strcmp(action, "init") != 0
+        || strcmp(action, "lock") != 0 || strcmp(action, "unlock") != 0) {
+        retval = -1;
+    }
+
+    printk(KERN_INFO "action = %s, thread_id = %d, index = %d\n",
+        action, thread_id, index);
+
+    /* Always end with a call to jprobe_return(). */
+    jprobe_return();
+    return retval;
+}
+
+static struct jprobe nodeadlock_probe = {
+    .entry = j_nodeadlock,
+    .kp = {
+        .symbol_name = "sys_nodeadlock",
+    },
+};
+
+static int __init my_init_module(void) {
     int retval = -1;
-    nodeadlock_kprobe.symbol_name = "sys_nodeadlock";
-    nodeadlock_kprobe.pre_handler = sysmon_intercept_before; 
-    nodeadlock_kprobe.post_handler = sysmon_intercept_after; 
-    retval = register_kprobe(nodeadlock_kprobe);
+
+    retval = register_jprobe(&nodeadlock_probe);
     if (retval < 0) {
         printk(KERN_INFO "register_kprobe failed.\n");
-        return ret;
+        return -1;
     }
-    
-    printk(KERN_INFO "Nodeadlock module successfully initialized.\n"); 
-    
-    return 0;
-} 
- 
-void my_cleanup_module(void) { 
-    unregister_kprobe(nodeadlock_kprobe);
-    
-    printk(KERN_INFO "Nodeadlock module uninitialized.\n");
-} 
 
-module_init(my_init_module); 
-module_exit(my_cleanup_module); 
-MODULE_AUTHOR("Team 23"); 
-MODULE_DESCRIPTION("NODEADLOCK MODULE"); 
+    printk(KERN_INFO "Nodeadlock module successfully initialized.\n");
+
+    return 0;
+}
+
+static __exit void my_cleanup_module(void) {
+    unregister_jprobe(&nodeadlock_probe);
+
+    printk(KERN_INFO "Nodeadlock module uninitialized.\n");
+}
+
+module_init(my_init_module);
+module_exit(my_cleanup_module);
+MODULE_AUTHOR("Team 23");
+MODULE_DESCRIPTION("NODEADLOCK MODULE");
 MODULE_LICENSE("GPL");
+

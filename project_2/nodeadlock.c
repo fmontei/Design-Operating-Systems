@@ -7,6 +7,7 @@
 typedef struct {
   int count;
   int thread_id;
+  int ready;
 } pthread_monitor;
 
 static DEFINE_MUTEX(count_mutex); // INITIALIZE MUTEX CODE HERE
@@ -18,15 +19,11 @@ long nodeadlock_init(int thread_id, int index) {
   if (index == 0) {
     first_monitor.count = 0;
     first_monitor.thread_id = thread_id;
+    first_monitor.ready = 1;
 
     second_monitor.count = 0;
     second_monitor.thread_id = -1;
-
-    // Wait for other thread to initialize
-    mutex_lock_interruptible(&count_mutex);
-    while (1)
-      // pthread_cond_wait(&count_cond, &count_mutex);
-    mutex_unlock(&count_mutex);
+    second_monitor.ready = 0;
 
     printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
@@ -34,11 +31,7 @@ long nodeadlock_init(int thread_id, int index) {
   } else if (index == 1) {
     second_monitor.count = 0;
     second_monitor.thread_id = thread_id;
-    
-    // Now that the second thread is initialized, unlock the first
-    mutex_lock_interruptible(&count_mutex);
-    // pthread_cond_signal(&count_cond);
-    mutex_unlock(&count_mutex);
+    second_monitor.ready = 1;
     
     printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
       thread_id, index);
@@ -81,7 +74,7 @@ long nodeadlock_mutex_lock(int this_thread_id) {
     return -1;
   } 
   
-  while (other_monitor->count > 0) {
+  while (other_monitor->count > 0 || other_monitor->ready == 0) {
     // wait_event_interruptible(wq, (other_monitor->count > 0));    
     other_monitor = get_other_thread_by_id(this_thread_id);
   

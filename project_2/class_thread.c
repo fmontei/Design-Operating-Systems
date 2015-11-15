@@ -8,7 +8,7 @@ typedef struct {
 } pthread_monitor;
 
 static pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t count_cond, init_cond;
+static pthread_cond_t count_cond;
 // static DECLARE_WAIT_QUEUE_HEAD(wq);
 static pthread_monitor first_monitor;
 static pthread_monitor second_monitor;
