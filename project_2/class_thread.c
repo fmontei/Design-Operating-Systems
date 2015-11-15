@@ -191,7 +191,8 @@ int class_mutex_lock(class_mutex_ptr cmutex)
   pthread_t thread_id = pthread_self();
   printf("THREAD ID (LOCK) = %d\n", (int) thread_id);
 
-  nodeadlock("lock", (int) thread_id, -1 /* Unusued arg */);
+  int retval = nodeadlock("lock", (int) thread_id, -1 /* Unusued arg */);
+  if (retval == -1) exit(1);
   
   if(pthread_mutex_lock(&cmutex->mutex))
   {
@@ -208,7 +209,8 @@ int class_mutex_unlock(class_mutex_ptr cmutex)
   pthread_t thread_id = pthread_self();
   printf("THREAD ID (UNLOCK) = %d\n", (int) thread_id);
   
-  nodeadlock("unlock", (int) thread_id, -1 /* Unusued arg */);
+  int retval = nodeadlock("unlock", (int) thread_id, -1 /* Unusued arg */);
+  if (retval == -1) exit(1);
   
   if(pthread_mutex_unlock(&cmutex->mutex))
   {
@@ -233,8 +235,8 @@ int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void *
   //Hacking a bit to get everything working correctly
   memcpy(cthread, &temp_pthread, sizeof(pthread_t));
   printf("THREAD ID CREATE = %d\n", (int) temp_pthread);
-  nodeadlock("init", (int) temp_pthread, index++);
-  //if (index == 2) exit(1);
+  int retval = nodeadlock("init", (int) temp_pthread, index++);
+  if (retval == -1) exit(1);
 
   return 0;
 }
