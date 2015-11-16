@@ -3,7 +3,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/string.h>
-#include <linux/wait.h>
 
 typedef struct {
   int count;
@@ -12,11 +11,8 @@ typedef struct {
 } pthread_monitor;
 
 static struct jprobe nodeadlock_probe;
-static DEFINE_MUTEX(count_mutex); 
-static DECLARE_WAIT_QUEUE_HEAD(wq);
 static pthread_monitor first_monitor;
 static pthread_monitor second_monitor;
-static struct task_struct *sleeping_task = NULL;
 
 static long nodeadlock_init(int thread_id, int index) {
   if (index == 0) {
@@ -71,7 +67,6 @@ static long nodeadlock_mutex_lock(int this_thread_id) {
   other_monitor = get_other_thread_by_id(this_thread_id);
 
   if (this_monitor == NULL || other_monitor == NULL) {
-    mutex_unlock(&count_mutex); // Unlock
     return -1;
   } 
   
@@ -89,7 +84,6 @@ static long nodeadlock_mutex_unlock(int this_thread_id) {
   this_monitor = get_thread_by_id(this_thread_id);
   
   if (this_monitor == NULL) {
-    mutex_unlock(&count_mutex); // Unlock
     return -1;
   } 
   
