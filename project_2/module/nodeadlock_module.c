@@ -75,8 +75,10 @@ static long nodeadlock_mutex_lock(int this_thread_id) {
     return -1;
   } 
   
-  if (other_monitor->count == 0) this_monitor->count += 1;
-    
+  if (other_monitor->count == 0 && other_monitor->ready == 1) {
+    this_monitor->count += 1;
+  }
+      
   return this_monitor->count;
 }
 
