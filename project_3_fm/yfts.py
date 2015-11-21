@@ -11,12 +11,8 @@ def run(download = None,
     if download:
         file_or_dir['action'] = 'download'
         file_or_dir['path'] = download
-        if isfile(download):
-            file_or_dir['type'] = 'file'
-        elif isdir(download):
-            file_or_dir['type'] = 'dir'
-        else:
-            return False, 'File/folder is invalid.'
+        if not isdir(download):
+            return False, 'Download folder is invalid.'
     elif upload:
         file_or_dir['action'] = 'upload'
         file_or_dir['path'] = upload
@@ -25,19 +21,21 @@ def run(download = None,
         elif isdir(upload):
             file_or_dir['type'] = 'dir'
         else:
-            return False, 'File/folder is invalid.'
-            
-    files_to_process = []
-    if file_or_dir['type'] == 'dir':
-        files_to_process = get_files_from_dir(file_or_dir['path'], is_dir = True) 
-    elif file_or_dir['type'] == 'file':
-        files_to_process = get_files_from_dir(file_or_dir['path'], is_dir = False) 
-      
-    if files_to_process:
-        if download:
-            download_files(files_to_process, file_or_dir)
-        elif upload:                    
-            upload_files(files_to_process, file_or_dir)
+            return False, 'Upload file/folder is invalid.'
+          
+    if download:
+        download_files(file_or_dir)
+    elif upload:           
+        files_to_process = []
+        if file_or_dir['type'] == 'dir':
+            files_to_process = get_files_from_dir(file_or_dir['path'], 
+                is_dir = True) 
+        elif file_or_dir['type'] == 'file':
+            files_to_process = get_files_from_dir(file_or_dir['path'],
+                is_dir = False)          
+        upload_files(files_to_process, file_or_dir)
+        
+    return True, ''
 
 def get_files_from_dir(file_or_dir, is_dir = False):
     from os import walk
@@ -60,20 +58,28 @@ def get_files_from_dir(file_or_dir, is_dir = False):
         
     return sorted(files_to_process)
     
-def download_files(files, file_or_dir):
-    print('Downloading files {files} in {dir}.'\
-            .format(files = str(files),
-                    dir = 'current directory' if file_or_dir['type'] == 'file'\
-                        else file_or_dir['path']))
+def download_files(file_or_dir):                    
+    import boto
+    s3 = boto.connect_s3()
     
-def upload_files(files, file_or_dir):
+    print('Downloading files.')
+    
+    download_folder = file_or_dir['path']
+    
+    bucket = s3.get_bucket(BUCKET_NAME)  
+    for key in bucket.list():
+        complete_path = download_folder + '/' + key.name
+        complete_path = complete_path.replace('//', '/')
+        key.get_contents_to_filename(complete_path)
+    
+def upload_files(files, file_or_dir):                    
+    import boto
+    s3 = boto.connect_s3()
+    
     print('Uploading files {files} in {dir}.'\
             .format(files = str(files),
                     dir = 'current directory' if file_or_dir['type'] == 'file'\
                         else file_or_dir['path']))
-                        
-    import boto
-    s3 = boto.connect_s3()
     
     for file in files:
         file_name = file[file.rindex('/') + 1:]
@@ -95,7 +101,11 @@ if __name__ == '__main__':
     if options.download and options.upload:
         print('Download/upload are mutually exclusive.')
         
-    run(download = options.download.strip() if options.download else None,
-        upload = options.upload.strip() if options.upload else None)
+    retval, msg = run(
+        download = options.download.strip() if options.download else None,
+        upload = options.upload.strip() if options.upload else None
+    )
+    
+    print retval, msg
         
 
