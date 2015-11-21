@@ -578,7 +578,7 @@ struct fuse_operations ytfs_oper = {
 
 void ytfs_usage()
 {
-    fprintf(stderr, "usage:  bbfs rootDir mountPoint\n");
+    fprintf(stdout, "usage:  bbfs rootDir mountPoint\n");
     abort();
 }
 
@@ -601,11 +601,11 @@ int main(int argc, char *argv[])
 
     for (; i < argc; i++)
 	   argv[i] = argv[i+1];
-    argc--;
+    //argc--;
 
-    fprintf(stderr, "about to call fuse_main\n");
+    fprintf(stdout, "about to call fuse_main\n");
     fuse_stat = fuse_main(argc, argv, &ytfs_oper, ytfs_data);
-    fprintf(stderr, "fuse_main returned %d\n", fuse_stat);
+    fprintf(stdout, "fuse_main returned %d\n", fuse_stat);
     
     return fuse_stat;
 }
