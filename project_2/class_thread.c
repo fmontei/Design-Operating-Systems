@@ -1,6 +1,7 @@
 #include "class_thread.h"
 #include <unistd.h>
 
+<<<<<<< HEAD
 typedef struct {
   int count;
   int thread_id;
@@ -126,6 +127,23 @@ int nodeadlock(char *action, int thread_id, int index) {
     return nodeadlock_mutex_unlock(thread_id);
   }
   return -1;
+=======
+static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond;
+
+int nodeadlock(char *action, int thread_id, int index) {
+  int retval = 0;
+  printf("Calling nodeadlock with thread_id = %d\n", thread_id);
+  if (action != NULL) {
+    syscall(318, action, thread_id, index, &retval);
+    printf("INSIDE RETVAL = %d\n", retval);
+    if (retval == -1) {
+      printf("CRITICAL ERROR, TERMINATING.\n");
+      exit(1);
+    } 
+  }
+  return retval;
+>>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
 }
 
 int allocate_mutex(class_mutex_t *cmutex)
@@ -196,16 +214,25 @@ int class_cond_destroy(class_condit_ptr ccondit)
 
 int class_mutex_lock(class_mutex_ptr cmutex)
 {
-
+  pthread_mutex_lock(&lock);
   pthread_t thread_id = pthread_self();
   printf("THREAD ID (LOCK) = %d\n", (int) thread_id);
 
   int retval = nodeadlock("lock", (int) thread_id, -1 /* Unusued arg */);
+<<<<<<< HEAD
   if (retval == -1) {
     printf("Failed, terminating.\n");
     exit(1);
   }
   
+=======
+  while (retval == 0) {
+    pthread_cond_wait(&cond, &lock);
+    retval = nodeadlock("lock", (int) thread_id, -1 /* Unusued arg */);
+  }
+  pthread_mutex_unlock(&lock);
+
+>>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
   if(pthread_mutex_lock(&cmutex->mutex))
   {
     fprintf(stdout, "Error: pthread mutex lock failed!\n");
@@ -218,15 +245,23 @@ int class_mutex_lock(class_mutex_ptr cmutex)
 
 int class_mutex_unlock(class_mutex_ptr cmutex)
 {
+  pthread_mutex_lock(&lock);
   pthread_t thread_id = pthread_self();
   printf("THREAD ID (UNLOCK) = %d\n", (int) thread_id);
   
   int retval = nodeadlock("unlock", (int) thread_id, -1 /* Unusued arg */);
+<<<<<<< HEAD
   if (retval == -1) {
     printf("Failed, terminating.\n");
     exit(1);
   }
   
+=======
+  if (retval == 0)
+    pthread_cond_signal(&cond);
+  pthread_mutex_unlock(&lock);  
+
+>>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
   if(pthread_mutex_unlock(&cmutex->mutex))
   {
     fprintf(stdout, "Error: pthread mutex unlock failed!\n");
@@ -250,11 +285,15 @@ int class_thread_create(class_thread_t * cthread, void *(*start)(void *), void *
   //Hacking a bit to get everything working correctly
   memcpy(cthread, &temp_pthread, sizeof(pthread_t));
   printf("THREAD ID CREATE = %d\n", (int) temp_pthread);
+<<<<<<< HEAD
   int retval = nodeadlock("init", (int) temp_pthread, index++);
   if (retval == -1) {
     printf("Failed, terminating.\n");
     exit(1);
   }
+=======
+  nodeadlock("init", (int) temp_pthread, index++);
+>>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
 
   return 0;
 }
