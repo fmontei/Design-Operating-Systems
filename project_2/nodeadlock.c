@@ -64,7 +64,7 @@ long nodeadlock_mutex_lock(int this_thread_id) {
   this_monitor = NULL;
   other_monitor = NULL;
 
-  mutex_lock_interruptible(&count_mutex); // Lock MUST be used instead of trylock
+  mutex_lock(&count_mutex); // Lock MUST be used instead of trylock
   
   this_monitor = get_thread_by_id(this_thread_id);
   other_monitor = get_other_thread_by_id(this_thread_id);
@@ -94,7 +94,7 @@ long nodeadlock_mutex_unlock(int this_thread_id) {
   pthread_monitor *this_monitor;
   this_monitor = NULL;
 
-  mutex_lock_interruptible(&count_mutex); // Lock 
+  mutex_lock(&count_mutex); // Lock 
   
   this_monitor = get_thread_by_id(this_thread_id);
   
