@@ -39,15 +39,13 @@ def run(download = None,
 
 def get_files_from_dir(file_or_dir, is_dir = False):
     from os import walk
-    from os.path import dirname, abspath
     
     files_to_process = []
     
     if is_dir:
         for (dirpath, dirnames, filenames) in walk(file_or_dir):
             for file_name in filenames:
-                complete_path = dirname(abspath(file_name)) + '/'
-                complete_path += dirpath + '/'
+                complete_path = dirpath + '/'
                 complete_path += file_name
                 complete_path = complete_path.replace('//', '/')
                 files_to_process.append(complete_path)
@@ -94,8 +92,7 @@ if __name__ == '__main__':
                       help="File to upload or folder containing files to "\
                         "upload.")
     parser.add_option("-d", "--download", 
-                      help = "File to upload or folder containing files to "\
-                        "download.")
+                      help = "Absolute path to download folder.")
 
     (options, args) = parser.parse_args()
     if options.download and options.upload:
