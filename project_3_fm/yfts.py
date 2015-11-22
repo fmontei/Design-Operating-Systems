@@ -2,12 +2,15 @@ from optparse import OptionParser
 from os.path import isfile, isdir
 
 BUCKET_NAME = 'ytfs-felipe-yaling-garrett'
+DB_NAME = 'mp3'
 
 def run(download = None, 
         upload = None):
         
     errors = []
     file_or_dir = {}
+
+    init_db()
     
     if download:
         file_or_dir['action'] = 'download'
@@ -40,6 +43,21 @@ def run(download = None,
         upload_files(files_to_process, file_or_dir)
         
     return True, errors
+
+def init_db():
+    import sqlite3
+    conn = sqlite3.connect('ytfs.db')
+    
+    cursor = conn.cursor()
+    try:
+        cursor.execute('CREATE TABLE {table} '\
+            '(file text, title text, artist text, album text, genre text, '\
+            'year text);'.format(table = DB_NAME))
+        cursor.execute('CREATE UNIQUE INDEX ukey ON {table} '\
+            '(file, title, artist, album, genre, year);'\
+            .format(table = DB_NAME))
+    except sqlite3.OperationalError as e:
+        pass
 
 def get_files_from_dir(file_or_dir, is_dir = False):
     from os import walk
@@ -108,13 +126,33 @@ def parse_header_info(files):
             artist = mp3_file.tag.artist
             album = mp3_file.tag.album
             title = mp3_file.tag.title
+            genre = mp3_file.tag.genre
+            year = mp3_file.tag.release_date or mp3_file.tag.recording_date
+            if genre:
+                genre = genre.name
+            insert_into_db(file = file, artist = artist, album = album, 
+                title = title, genre = genre, year = year)
         else:
             errors.append('No tag found for mp3 file {file}.'.format(file = file))
-
+            insert_into_db(file = file) # All values default to 'Unknown'
     if errors:
         return False, errors
 
     return True, ''
+
+def insert_into_db(file, title = 'Unknown', artist = 'Unknown', 
+    album = 'Unknown', genre = 'Unknown', year = 'Unknown'):
+    import sqlite3
+    conn = sqlite3.connect('ytfs.db')
+
+    cursor = conn.cursor()
+    query = 'INSERT INTO {table} (file, title, artist, '\
+        'album, genre, year) VALUES("{file}", "{title}", "{artist}", '\
+        '"{album}", "{genre}", "{year}");'\
+        .format(table = DB_NAME, file = file, title = title, 
+                artist = artist, album = album, genre = genre, 
+                year = year)
+    cursor.execute(query)
     
 if __name__ == '__main__':
     parser = OptionParser()
