@@ -538,7 +538,7 @@ int ytfs_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info 
 
 struct fuse_operations ytfs_oper = {
   .getattr = ytfs_getattr,
-  /*.readlink = ytfs_readlink,
+  .readlink = ytfs_readlink,
   .getdir = NULL,
   .mknod = ytfs_mknod,
   .mkdir = ytfs_mkdir,
@@ -550,10 +550,10 @@ struct fuse_operations ytfs_oper = {
   .chmod = ytfs_chmod,
   .chown = ytfs_chown,
   .truncate = ytfs_truncate,
-  .utime = ytfs_utime,*/
+  .utime = ytfs_utime,
   .open = ytfs_open,
   .read = ytfs_read,
-  /*.write = ytfs_write,
+  .write = ytfs_write,
   .statfs = ytfs_statfs,
   .flush = ytfs_flush,
   .release = ytfs_release,
@@ -562,16 +562,16 @@ struct fuse_operations ytfs_oper = {
   .getxattr = ytfs_getxattr,
   .listxattr = ytfs_listxattr,
   .removexattr = ytfs_removexattr,
-  .opendir = ytfs_opendir,*/
+  .opendir = ytfs_opendir,
   .readdir = ytfs_readdir,
-  /*.releasedir = ytfs_releasedir,
+  .releasedir = ytfs_releasedir,
   .fsyncdir = ytfs_fsyncdir,
   .init = ytfs_init,
   .destroy = ytfs_destroy,
   .access = ytfs_access,
   .create = ytfs_create,
   .ftruncate = ytfs_ftruncate,
-  .fgetattr = ytfs_fgetattr*/
+  .fgetattr = ytfs_fgetattr
 };
 
 void ytfs_usage()
