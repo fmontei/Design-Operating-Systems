@@ -25,7 +25,7 @@ def run(download = None,
             return False, 'Upload file/folder is invalid.'
           
     if download:
-        # download_files(file_or_dir)
+        download_files(file_or_dir)
         files_to_process = get_files_from_dir(file_or_dir['path'], 
             is_dir = True) 
         errors = parse_header_info(files_to_process)
