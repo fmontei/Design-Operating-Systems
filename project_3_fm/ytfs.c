@@ -20,7 +20,6 @@
 
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello.mp3";
-static const char *album_hello_path = "/hello";
 
 static const char *CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
 
@@ -67,14 +66,13 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     // Populate the root directory with the core category folders
     if (is_root_directory(path)) {
-        filler(buf, hello_path + 1, NULL, 0);
         for (i = 0; i < NUM_CATEGORY; i++) {
             filler(buf, CATEGORY_DIRS[i] + 1, NULL, 0);
         }
     }
 
     // Fill each category folder with files
-    if (strcmp(path, "/Album") == 0) {
+    if (is_category_directory(path)) {
         filler(buf, hello_path + 1, NULL, 0);
     }
 
@@ -170,5 +168,7 @@ bool is_file(const char *path)
         ends_with_mp3 = true;
     } 
 
+    // Treat paths like /sample.mp3 and /Album/sample.mp3 and /Album/<path>/sample.3
+    // valid file paths 
     return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
 }
