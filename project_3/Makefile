@@ -1,8 +1,5 @@
-ytfs : ytfs.o
-	gcc -g -o ytfs ytfs.o `pkg-config fuse --libs` -lid3 -lz
-
-ytfs.o : ytfs.c
-	gcc -g -Wall `pkg-config fuse --cflags` -c ytfs.c
+all:
+	gcc -Wall -D_FILE_OFFSET_BITS=64 ytfs.c `pkg-config fuse --cflags --libs` -o ytfs 
 
 clean:
 	rm -f ytfs *.o
