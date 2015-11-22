@@ -17,7 +17,8 @@
 #include <sys/xattr.h>
 //ID3LIB
 #include <id3.h>
-
+//Max field size from mailing list example
+#define FIELD_MAX_SIZE 4096
 int __mkdir(const char *);
 int _mkdir(const char *, mode_t);
 
@@ -31,7 +32,7 @@ int ytfs_error(char *str)
 
 void ytfs_fullpath(char fpath[PATH_MAX], const char *path)
 {
-    strcpy(fpath, ytfs_DATA->rootdir);
+    strcpy(fpath, YTFS_DATA->rootdir);
     strncat(fpath, path, PATH_MAX); 
 }
 
@@ -360,7 +361,7 @@ int ytfs_release(const char *path, struct fuse_file_info *fi)
 	
 	//Find field containing year
 	yearfield = ID3Frame_GetField(yearframe, ID3FN_TEXT);
-	char *year[FIELD_MAX_SIZE];
+	char year[FIELD_MAX_SIZE];
 	ID3Field_GetASCII(yearfield, year, FIELD_MAX_SIZE);
 	
 	//Create filepath for year
@@ -510,7 +511,7 @@ void *ytfs_init(struct fuse_conn_info *conn)
 {
     
     
-    return ytfs_DATA;
+    return YTFS_DATA;
 }
 
 

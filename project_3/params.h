@@ -19,6 +19,6 @@
 struct ytfs_state {
     char *rootdir;
 };
-#define YTFS_DATA ((struct ypfs_state *) fuse_get_context()->private_data)
+#define YTFS_DATA ((struct ytfs_state *) fuse_get_context()->private_data)
 
 #endif
