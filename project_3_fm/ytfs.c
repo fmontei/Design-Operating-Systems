@@ -19,22 +19,32 @@
 #include <stdbool.h>
 
 static const char *hello_str = "Hello World!\n";
-static const char *hello_path = "/hello";
-static const char *bye_path = "/bye";
+static const char *hello_path = "/hello.mp3";
+static const char *album_hello_path = "/hello";
 
 static const char *CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
 
 bool is_directory(const char *path);
+bool is_root_directory(const char *path);
+bool is_category_directory(const char *path); 
+bool is_file(const char *path);
 
 static int hello_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
 
 	memset(stbuf, 0, sizeof(struct stat));
-	if (is_directory(path)) {
+	if (is_root_directory(path)) {
 		stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 3;
+	} else if (is_category_directory(path)) { 
+        stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
-	} else {
+    } else if (is_file(path)) {
+        stbuf->st_mode = S_IFREG | 0666;
+        stbuf->st_nlink = 1;
+        stbuf->st_size = strlen(hello_str);
+    } else {
 		res = -ENOENT;
     }
 
@@ -48,15 +58,24 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	(void) fi;
     int i;
 
+    // Since we're reading directories, reject all non-directories
 	if (!is_directory(path))
 		return -ENOENT;
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-    if (strcmp(path, "/") == 0) {
+
+    // Populate the root directory with the core category folders
+    if (is_root_directory(path)) {
+        filler(buf, hello_path + 1, NULL, 0);
         for (i = 0; i < NUM_CATEGORY; i++) {
             filler(buf, CATEGORY_DIRS[i] + 1, NULL, 0);
         }
+    }
+
+    // Fill each category folder with files
+    if (strcmp(path, "/Album") == 0) {
+        filler(buf, hello_path + 1, NULL, 0);
     }
 
 	return 0;
@@ -64,7 +83,7 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int hello_open(const char *path, struct fuse_file_info *fi)
 {
-	if (strcmp(path, hello_path) != 0 && strcmp(path, bye_path) != 0)
+	if (!is_file(path))
 		return -ENOENT;
 
 	if ((fi->flags & 3) != O_RDONLY)
@@ -78,7 +97,8 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	size_t len;
 	(void) fi;
-	if(strcmp(path, hello_path) != 0 && strcmp(path, bye_path) != 0)
+
+	if (!is_file(path))
 		return -ENOENT;
 
 	len = strlen(hello_str);
@@ -86,8 +106,9 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
 		if (offset + size > len)
 			size = len - offset;
 		memcpy(buf, hello_str + offset, size);
-	} else
+	} else {
 		size = 0;
+    }
 
 	return size;
 }
@@ -106,19 +127,48 @@ int main(int argc, char *argv[])
 
 bool is_directory(const char *path)
 {
-    bool is_dir = false;
+    return is_root_directory(path) || is_category_directory(path);
+}
+
+bool is_root_directory(const char *path)
+{
+    return strcmp(path, "/") == 0;
+}
+
+bool is_category_directory(const char *path) 
+{
     int i;
-    
-    if (strcmp(path, "/") == 0) {
-        is_dir = true;
-    }
 
     for (i = 0; i < NUM_CATEGORY; i++) {
         if (strcmp(path, CATEGORY_DIRS[i]) == 0) {
-            is_dir = true;
-            break;
+            return true;
         }
     }
 
-    return is_dir;
+    return false;
+}
+
+bool is_file(const char *path)
+{
+    bool begins_with_category_directory = false;
+    bool ends_with_mp3 = false;
+    int i;
+
+    for (i = 0; i < NUM_CATEGORY; i++) {
+        const char *cat_dir = CATEGORY_DIRS[i];
+        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
+            begins_with_category_directory = true;
+        }
+    }
+
+    size_t size = strlen(path);
+    if (size >= 4 &&
+        path[size - 4] == '.' &&
+        path[size - 3] == 'm' &&
+        path[size - 2] == 'p' &&
+        path[size - 1] == '3') {
+        ends_with_mp3 = true;
+    } 
+
+    return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
 }
