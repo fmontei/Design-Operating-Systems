@@ -19,18 +19,17 @@
 int __mkdir(const char *);
 int _mkdir(const char *, mode_t);
 
-static struct ytfs_state *ytfs_data = NULL;
-
 int ytfs_error(char *str)
 {
     int ret = -errno;
+    
     
     return ret;
 }
 
 void ytfs_fullpath(char fpath[PATH_MAX], const char *path)
 {
-    strcpy(fpath, ytfs_data->rootdir);
+    strcpy(fpath, ytfs_DATA->rootdir);
     strncat(fpath, path, PATH_MAX); 
 }
 
@@ -43,7 +42,7 @@ int ytfs_getattr(const char *path, struct stat *statbuf)
     
     retstat = lstat(fpath, statbuf);
     if (retstat != 0)
-	    retstat = ytfs_error("ytfs_getattr lstat");
+	retstat = ytfs_error("ytfs_getattr lstat");
     
     return retstat;
 }
@@ -57,7 +56,7 @@ int ytfs_readlink(const char *path, char *link, size_t size)
     
     retstat = readlink(fpath, link, size);
     if (retstat < 0)
-	    retstat = ytfs_error("ytfs_readlink readlink");
+	retstat = ytfs_error("ytfs_readlink readlink");
     
     return 0;
 }
@@ -71,24 +70,23 @@ int ytfs_mknod(const char *path, mode_t mode, dev_t dev)
     
     if (S_ISREG(mode)) {
         retstat = open(fpath, O_CREAT | O_EXCL | O_WRONLY, mode);
-	    if (retstat < 0)
-	        retstat = ytfs_error("ytfs_mknod open");
+	if (retstat < 0)
+	    retstat = ytfs_error("ytfs_mknod open");
         else {
             retstat = close(retstat);
-            if (retstat < 0)
-	            retstat = ytfs_error("ytfs_mknod close");
-        }
-    } else {
-	    if (S_ISFIFO(mode)) {
-	            retstat = mkfifo(fpath, mode);
-	        if (retstat < 0)
-		        retstat = ytfs_error("ytfs_mknod mkfifo");
-	    } else {
-	        retstat = mknod(fpath, mode, dev);
-	        if (retstat < 0)
-		        retstat = ytfs_error("ytfs_mknod mknod");
-	    }
-    }
+	    if (retstat < 0)
+		retstat = ytfs_error("ytfs_mknod close");
+	}
+    } else
+	if (S_ISFIFO(mode)) {
+	    retstat = mkfifo(fpath, mode);
+	    if (retstat < 0)
+		retstat = ytfs_error("ytfs_mknod mkfifo");
+	} else {
+	    retstat = mknod(fpath, mode, dev);
+	    if (retstat < 0)
+		retstat = ytfs_error("ytfs_mknod mknod");
+	}
     
     return retstat;
 }
@@ -285,6 +283,7 @@ int ytfs_open(const char *path, struct fuse_file_info *fi)
 int ytfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int retstat = 0;
+
     
     retstat = pread(fi->fh, buf, size, offset);
     if (retstat < 0)
@@ -466,12 +465,15 @@ int ytfs_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 {
     int retstat = 0;
     
+    
     return retstat;
 }
 
 void *ytfs_init(struct fuse_conn_info *conn)
 {
-    return YTFS_DATA;
+    
+    
+    return ytfs_DATA;
 }
 
 
@@ -508,6 +510,7 @@ int ytfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     
     fi->fh = fd;
     
+    
     return retstat;
 }
 
@@ -539,6 +542,7 @@ int ytfs_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info 
 struct fuse_operations ytfs_oper = {
   .getattr = ytfs_getattr,
   .readlink = ytfs_readlink,
+  // no .getdir -- that's deprecated
   .getdir = NULL,
   .mknod = ytfs_mknod,
   .mkdir = ytfs_mkdir,
@@ -576,24 +580,25 @@ struct fuse_operations ytfs_oper = {
 
 void ytfs_usage()
 {
-    fprintf(stdout, "usage:  bbfs rootDir mountPoint\n");
+    fprintf(stderr, "usage:  bbfs rootDir mountPoint\n");
     abort();
 }
 
 int main(int argc, char *argv[])
 {
     int i;
-    int fuse_stat = 0;
+    int fuse_stat;
+    struct ytfs_state *ytfs_data;
 
     ytfs_data = calloc(sizeof(struct ytfs_state), 1);
     if (ytfs_data == NULL) {
-	    perror("main calloc");
-	    abort();
+	perror("main calloc");
+	abort();
     }
     
     for (i = 1; (i < argc) && (argv[i][0] == '-'); i++);
     if (i == argc)
-	    ytfs_usage();
+	ytfs_usage();
     
     ytfs_data->rootdir = realpath(argv[i], NULL);
 
@@ -601,9 +606,9 @@ int main(int argc, char *argv[])
 	   argv[i] = argv[i+1];
     argc--;
 
-    fprintf(stdout, "about to call fuse_main\n");
+    fprintf(stderr, "about to call fuse_main\n");
     fuse_stat = fuse_main(argc, argv, &ytfs_oper, ytfs_data);
-    fprintf(stdout, "fuse_main returned %d\n", fuse_stat);
+    fprintf(stderr, "fuse_main returned %d\n", fuse_stat);
     
     return fuse_stat;
 }
