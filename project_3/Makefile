@@ -1,6 +1,9 @@
 ytfs : ytfs.o
-	gcc -Wall ytfs.c `pkg-config fuse --cflags --libs` -o ytfs
-	
+	gcc -g -o ytfs ytfs.o `pkg-config fuse --libs`
+
+ytfs.o : ytfs.c
+	gcc -g -Wall `pkg-config fuse --cflags` -c ytfs.c
+
 clean:
 	rm -f ytfs *.o
 

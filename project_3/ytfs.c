@@ -284,7 +284,6 @@ int ytfs_open(const char *path, struct fuse_file_info *fi)
 int ytfs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int retstat = 0;
-
     
     retstat = pread(fi->fh, buf, size, offset);
     if (retstat < 0)
@@ -508,7 +507,6 @@ int ytfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     
     fi->fh = fd;
     
-    
     return retstat;
 }
 
@@ -539,8 +537,7 @@ int ytfs_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info 
 
 struct fuse_operations ytfs_oper = {
   .getattr = ytfs_getattr,
-  .readlink = ytfs_readlink,
-  // no .getdir -- that's deprecated
+  /*.readlink = ytfs_readlink,
   .getdir = NULL,
   .mknod = ytfs_mknod,
   .mkdir = ytfs_mkdir,
@@ -552,10 +549,10 @@ struct fuse_operations ytfs_oper = {
   .chmod = ytfs_chmod,
   .chown = ytfs_chown,
   .truncate = ytfs_truncate,
-  .utime = ytfs_utime,
+  .utime = ytfs_utime,*/
   .open = ytfs_open,
   .read = ytfs_read,
-  .write = ytfs_write,
+  /*.write = ytfs_write,
   .statfs = ytfs_statfs,
   .flush = ytfs_flush,
   .release = ytfs_release,
@@ -564,16 +561,16 @@ struct fuse_operations ytfs_oper = {
   .getxattr = ytfs_getxattr,
   .listxattr = ytfs_listxattr,
   .removexattr = ytfs_removexattr,
-  .opendir = ytfs_opendir,
+  .opendir = ytfs_opendir,*/
   .readdir = ytfs_readdir,
-  .releasedir = ytfs_releasedir,
+  /*.releasedir = ytfs_releasedir,
   .fsyncdir = ytfs_fsyncdir,
   .init = ytfs_init,
   .destroy = ytfs_destroy,
   .access = ytfs_access,
   .create = ytfs_create,
   .ftruncate = ytfs_ftruncate,
-  .fgetattr = ytfs_fgetattr
+  .fgetattr = ytfs_fgetattr*/
 };
 
 void ytfs_usage()
@@ -601,7 +598,7 @@ int main(int argc, char *argv[])
 
     for (; i < argc; i++)
 	   argv[i] = argv[i+1];
-    //argc--;
+    argc--;
 
     fprintf(stdout, "about to call fuse_main\n");
     fuse_stat = fuse_main(argc, argv, &ytfs_oper, ytfs_data);
