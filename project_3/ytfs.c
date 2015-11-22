@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/xattr.h>
+//ID3LIB
+#include <id3.h>
 
 int __mkdir(const char *);
 int _mkdir(const char *, mode_t);
@@ -333,6 +335,41 @@ int ytfs_release(const char *path, struct fuse_file_info *fi)
 	// Release is the last call after a file is added to the system
 	// This will be where we examine the ID3 data and sort the file accordingly
 	// TODO add id3lib and implement sorting functionality
+	
+	//Strings for filepaths
+	char fpath[PATH_MAX];
+	char sortfpath[PATH_MAX];
+	
+	//String for inital sorted path
+	char sortpath[PATH_MAX];
+		
+	//get complete filepath
+	ytfs_fullpath(fpath, path);
+	
+	//Extract id3 tag information
+	//TODO add album sorting, using year for initial test
+	ID3Tag *tag;
+	ID3Frame *yearframe;
+	ID3Field *yearfield;
+	
+	tag = ID3Tag_New();
+	ID3Tag_Link(tag, fpath);
+	
+	//Find the frame containing the year
+	yearframe = ID3Tag_FindFrameWithID(tag, ID3FID_YEAR);
+	
+	//Find field containing year
+	yearfield = ID3Frame_GetField(yearframe, ID3FN_TEXT);
+	char *year[FIELD_MAX_SIZE];
+	ID3Field_GetASCII(yearfield, year, FIELD_MAX_SIZE);
+	
+	//Create filepath for year
+	sprintf(sortpath, "/Years/%s/", year);
+	ytfs_fullpath(sortfpath, sortpath);
+	
+	//Make new direcctory and place file in year sorted
+	__mkdir(sortfpath);
+	rename(fpath, strcat(sortfpath, path));
         
     return retstat;
 }
