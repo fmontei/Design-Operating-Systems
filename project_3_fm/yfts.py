@@ -2,7 +2,8 @@ from optparse import OptionParser
 from os.path import isfile, isdir
 
 BUCKET_NAME = 'ytfs-felipe-yaling-garrett'
-DB_NAME = 'mp3'
+DB_NAME = 'ytfs.db'
+TABLE_NAME = 'mp3'
 
 def run(download = None, 
         upload = None):
@@ -46,16 +47,16 @@ def run(download = None,
 
 def init_db():
     import sqlite3
-    conn = sqlite3.connect('ytfs.db')
+    conn = sqlite3.connect(DB_NAME)
     
     cursor = conn.cursor()
     try:
         cursor.execute('CREATE TABLE {table} '\
             '(file text, title text, artist text, album text, genre text, '\
-            'year text);'.format(table = DB_NAME))
+            'year text);'.format(table = TABLE_NAME))
         cursor.execute('CREATE UNIQUE INDEX ukey ON {table} '\
             '(file, title, artist, album, genre, year);'\
-            .format(table = DB_NAME))
+            .format(table = TABLE_NAME))
     except sqlite3.OperationalError as e:
         pass
 
@@ -143,13 +144,13 @@ def parse_header_info(files):
 def insert_into_db(file, title = 'Unknown', artist = 'Unknown', 
     album = 'Unknown', genre = 'Unknown', year = 'Unknown'):
     import sqlite3
-    conn = sqlite3.connect('ytfs.db')
+    conn = sqlite3.connect(DB_NAME)
 
     cursor = conn.cursor()
     query = 'INSERT INTO {table} (file, title, artist, '\
         'album, genre, year) VALUES("{file}", "{title}", "{artist}", '\
         '"{album}", "{genre}", "{year}");'\
-        .format(table = DB_NAME, file = file, title = title, 
+        .format(table = TABLE_NAME, file = file, title = title, 
                 artist = artist, album = album, genre = genre, 
                 year = year)
     cursor.execute(query)
