@@ -333,9 +333,8 @@ int ytfs_release(const char *path, struct fuse_file_info *fi)
     int retstat = 0;
     
     // TODO
-	// Release is the last call after a file is added to the system
-	// This will be where we examine the ID3 data and sort the file accordingly
-	// TODO add id3lib and implement sorting functionality
+	// Sort Properly, Not Die when no ID3 found, add links instead of moving file
+	// Parse for decade
 	
 	//Strings for filepaths
 	char fpath[PATH_MAX];
@@ -357,20 +356,26 @@ int ytfs_release(const char *path, struct fuse_file_info *fi)
 	ID3Tag_Link(tag, fpath);
 	
 	//Find the frame containing the year
+	//We only want to continue if the frame is not NULL
 	yearframe = ID3Tag_FindFrameWithID(tag, ID3FID_YEAR);
+	if (yearframe != NULL) {
 	
-	//Find field containing year
-	yearfield = ID3Frame_GetField(yearframe, ID3FN_TEXT);
-	char year[FIELD_MAX_SIZE];
-	ID3Field_GetASCII(yearfield, year, FIELD_MAX_SIZE);
-	
-	//Create filepath for year
-	sprintf(sortpath, "/Years/%s/", year);
-	ytfs_fullpath(sortfpath, sortpath);
-	
-	//Make new direcctory and place file in year sorted
-	__mkdir(sortfpath);
-	rename(fpath, strcat(sortfpath, path));
+		//Find field containing year
+		//Only want to continue if field is not NULL
+		yearfield = ID3Frame_GetField(yearframe, ID3FN_TEXT);
+		if(yearfield != NULL) {
+			char year[FIELD_MAX_SIZE];
+			ID3Field_GetASCII(yearfield, year, FIELD_MAX_SIZE);
+			
+			//Create filepath for year
+			sprintf(sortpath, "/Years/%s/", year);
+			ytfs_fullpath(sortfpath, sortpath);
+			
+			//Make new direcctory and create link to file in year sorted
+			__mkdir(sortfpath);
+			ypfs_symlink(fpath, strcat(sortfpath, path));
+		}
+	}
         
     return retstat;
 }
