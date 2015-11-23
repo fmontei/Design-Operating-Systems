@@ -30,12 +30,111 @@ static const char *hello_path = "/hello.mp3";
 static const char *CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
 static folder_list_t *genre_folder_list = NULL;
 
+void init_db(void);
 bool is_directory(const char *path);
 bool is_root_directory(const char *path);
 bool is_category_directory(const char *path);
 bool is_sub_category_directory(const char *path); 
 bool is_file(const char *path);
-void init_db(void);
+size_t get_sub_directory_strlen(const char *path);
+
+
+bool is_directory(const char *path)
+{
+    return is_root_directory(path) 
+        || is_category_directory(path)
+        || is_sub_category_directory(path);
+}
+
+bool is_root_directory(const char *path)
+{
+    return strcmp(path, "/") == 0;
+}
+
+bool is_category_directory(const char *path) 
+{
+    int i;
+
+    for (i = 0; i < NUM_CATEGORY; i++) {
+        if (strcmp(path, CATEGORY_DIRS[i]) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool is_sub_category_directory(const char *path) 
+{
+    bool begins_with_category_directory = false;
+    bool in_sub_category_list = true; // NEED TO FIX
+    bool ends_with_mp3 = false;
+    int i;
+
+    for (i = 0; i < NUM_CATEGORY; i++) {
+        const char *cat_dir = CATEGORY_DIRS[i];
+        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
+            begins_with_category_directory = true;
+            break;
+        }
+    }
+
+    size_t size = strlen(path);
+    if (size >= 4 &&
+        path[size - 4] == '.' &&
+        path[size - 3] == 'm' &&
+        path[size - 2] == 'p' &&
+        path[size - 1] == '3') {
+        ends_with_mp3 = true;
+    } 
+
+    return in_sub_category_list && begins_with_category_directory
+        && !ends_with_mp3;
+}
+
+bool is_file(const char *path)
+{
+    bool begins_with_category_directory = false;
+    bool ends_with_mp3 = false;
+    int i;
+
+    for (i = 0; i < NUM_CATEGORY; i++) {
+        const char *cat_dir = CATEGORY_DIRS[i];
+        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
+            begins_with_category_directory = true;
+            break;
+        }
+    }
+
+    size_t size = strlen(path);
+    if (size >= 4 &&
+        path[size - 4] == '.' &&
+        path[size - 3] == 'm' &&
+        path[size - 2] == 'p' &&
+        path[size - 1] == '3') {
+        ends_with_mp3 = true;
+    } 
+
+    // Treat paths like /sample.mp3 and /Album/sample.mp3 and /Album/<path>/sample.3
+    // valid file paths 
+    return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
+}
+
+size_t get_sub_directory_strlen(const char *path) {
+    folder_t *curr = NULL;
+    
+    if (strncmp("/Genre", path, strlen("/Genre")) == 0) {
+        curr = genre_folder_list->root;
+        while (curr != NULL) {
+            if (strcmp(curr->path_name, path) == 0) {
+                return strlen(curr->path_name);
+            }
+            curr = curr->next;
+        }
+    }
+
+    return -1;
+}
 
 static int ytfs_getattr(const char *path, struct stat *stbuf)
 {
@@ -54,7 +153,12 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
     } else if (is_file(path)) {
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
-        stbuf->st_size = strlen(hello_str);
+        size_t len = get_sub_directory_strlen(path);
+        if (len == -1) {
+            printf("Fatal: Subdirectory not found. Path = %s. Len = %d\n", path, (int) len);
+            exit(1);
+        }
+        stbuf->st_size = len;
     } else {
 		res = -ENOENT;
     }
@@ -87,7 +191,8 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     if (is_category_directory(path) && strcmp(path, "/Genre") == 0) {
         folder_t *curr = genre_folder_list->root;
         while (curr != NULL) {
-            filler(buf, curr->name + 1, NULL, 0);
+            // DO NOT ADD ONE to curr->name
+            filler(buf, curr->name, NULL, 0);
             curr = curr->next;
         }
     }
@@ -145,7 +250,7 @@ int callback(void *data, int argc, char **argv, char **col_names) {
     for (i = 0; i < argc; i++) {
         printf("%s = %s\n", col_names[i], argv[i] ? argv[i] : "NULL");
         if (strcmp(col_names[i], "genre") == 0) {
-            insert_node(genre_folder_list, argv[i]);
+            insert_node(genre_folder_list, argv[i], "/Genre/");
         }
     }
     printf("\n");
@@ -185,84 +290,9 @@ int main(int argc, char *argv[])
     init_db();
     folder_t *curr = genre_folder_list->root;
     while (curr != NULL) {
-        printf("genre = %s\n", curr->name);
+        printf("name = %s, path_name = %s\n", curr->name, curr->path_name);
         curr = curr->next;
     }
     return fuse_main(argc, argv, &ytfs_oper, NULL);
 }
 
-bool is_directory(const char *path)
-{
-    return is_root_directory(path) || is_category_directory(path)
-        || is_sub_category_directory(path);
-}
-
-bool is_root_directory(const char *path)
-{
-    return strcmp(path, "/") == 0;
-}
-
-bool is_category_directory(const char *path) 
-{
-    int i;
-
-    for (i = 0; i < NUM_CATEGORY; i++) {
-        if (strcmp(path, CATEGORY_DIRS[i]) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool is_sub_category_directory(const char *path) {
-    folder_t *curr = genre_folder_list->root;
-    bool begins_with_category_directory = false;
-    bool in_sub_category_list = true;
-    int i;
-
-    while (curr != NULL) {
-        if (curr->name != NULL && strcmp(curr->name, path) == 0) {
-            in_sub_category_list = true;
-        }
-        curr = curr->next;
-    }
-
-    for (i = 0; i < NUM_CATEGORY; i++) {
-        const char *cat_dir = CATEGORY_DIRS[i];
-        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
-            begins_with_category_directory = true;
-            break;
-        }
-    }
-
-    return in_sub_category_list && begins_with_category_directory;
-}
-
-bool is_file(const char *path)
-{
-    bool begins_with_category_directory = false;
-    bool ends_with_mp3 = false;
-    int i;
-
-    for (i = 0; i < NUM_CATEGORY; i++) {
-        const char *cat_dir = CATEGORY_DIRS[i];
-        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
-            begins_with_category_directory = true;
-            break;
-        }
-    }
-
-    size_t size = strlen(path);
-    if (size >= 4 &&
-        path[size - 4] == '.' &&
-        path[size - 3] == 'm' &&
-        path[size - 2] == 'p' &&
-        path[size - 1] == '3') {
-        ends_with_mp3 = true;
-    } 
-
-    // Treat paths like /sample.mp3 and /Album/sample.mp3 and /Album/<path>/sample.3
-    // valid file paths 
-    return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
-}
