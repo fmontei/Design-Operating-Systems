@@ -156,11 +156,6 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
     } else if (is_file(path)) {
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
-        /*size_t len = get_sub_directory_strlen(path);
-        if (len == -1) {
-            printf("Fatal: Subdirectory not found. Path = %s. Len = %d\n", path, (int) len);
-            exit(1);
-        }*/
         stbuf->st_size = strlen(hello_str);
     } else {
 		res = -ENOENT;
@@ -274,7 +269,7 @@ void init_db(void)
         exit(1);
     }
 
-    query = "SELECT DISTINCT genre from mp3;";
+    query = "SELECT DISTINCT genre from mp3 ORDER BY genre ASC;";
 
     rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
