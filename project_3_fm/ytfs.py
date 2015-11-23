@@ -155,11 +155,11 @@ def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown',
     import sqlite3
     conn = sqlite3.connect(DB_NAME)
 
-    title = title.encode('utf-8')
-    artist = artist.encode('utf-8')
-    album = album.encode('utf-8')
-    genre = genre.encode('utf-8')
-    year = year.encode('utf-8')
+    title = title.encode('utf-8').replace(' ', '_')
+    artist = artist.encode('utf-8').replace(' ', '_')
+    album = album.encode('utf-8').replace(' ', '_')
+    genre = genre.encode('utf-8').replace(' ', '_')
+    year = str(year).encode('utf-8').replace(' ', '_')
 
     cursor = conn.cursor()
     query = 'INSERT INTO {table} (file, title, artist, '\

@@ -28,7 +28,10 @@ static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello.mp3";
 
 static const char *CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
+static folder_list_t *album_folder_list = NULL;
+static folder_list_t *artist_folder_list = NULL;
 static folder_list_t *genre_folder_list = NULL;
+static folder_list_t *year_folder_list = NULL;
 
 void init_db(void);
 bool is_directory(const char *path);
@@ -37,7 +40,6 @@ bool is_category_directory(const char *path);
 bool is_sub_category_directory(const char *path); 
 bool is_file(const char *path);
 size_t get_sub_directory_strlen(const char *path);
-
 
 bool is_directory(const char *path)
 {
@@ -186,11 +188,19 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     }
 
     // Fill each category folder with specific folder names
-    else if (is_category_directory(path) && strcmp(path, "/Genre") == 0) {
-        folder_t *curr = genre_folder_list->root;
-        while (curr != NULL) {
-            // DO NOT ADD ONE to curr->name
-            filler(buf, curr->name, NULL, 0);
+    else if (is_category_directory(path)) {
+        folder_t *curr = NULL;
+        if (strcmp(path, "/Album") == 0) {
+            curr = album_folder_list->root;
+        } else if (strcmp(path, "/Artist") == 0) {
+            curr = artist_folder_list->root;
+        } else if (strcmp(path, "/Genre") == 0) {
+            curr = genre_folder_list->root;
+        } else if (strcmp(path, "/Year") == 0) {
+            curr = year_folder_list->root;
+        }
+        while (curr != NULL) { 
+            filler(buf, curr->name, NULL, 0); // DO NOT ADD ONE to curr->name
             curr = curr->next;
         }
     }
@@ -247,8 +257,17 @@ int callback(void *data, int argc, char **argv, char **col_names) {
     fprintf(stdout, "%s: ", (const char*) data);
     for (i = 0; i < argc; i++) {
         printf("%s = %s\n", col_names[i], argv[i] ? argv[i] : "NULL");
+        if (strcmp(col_names[i], "album") == 0) {
+            insert_node(album_folder_list, argv[i], "/Album/");
+        }
+        if (strcmp(col_names[i], "artist") == 0) {
+            insert_node(artist_folder_list, argv[i], "/Artist/");
+        }
         if (strcmp(col_names[i], "genre") == 0) {
             insert_node(genre_folder_list, argv[i], "/Genre/");
+        }
+        if (strcmp(col_names[i], "year") == 0) {
+            insert_node(year_folder_list, argv[i], "/Year/");
         }
     }
     printf("\n");
@@ -269,8 +288,34 @@ void init_db(void)
         exit(1);
     }
 
-    query = "SELECT DISTINCT genre from mp3 ORDER BY genre ASC;";
+    query = "SELECT DISTINCT album from mp3 ORDER BY album ASC;";
+    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
 
+    query = "SELECT DISTINCT artist from mp3 ORDER BY artist ASC;";
+    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+
+    query = "SELECT DISTINCT genre from mp3 ORDER BY genre ASC;";
+    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+
+    query = "SELECT DISTINCT year from mp3 ORDER BY year ASC;";
     rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -284,13 +329,12 @@ void init_db(void)
 
 int main(int argc, char *argv[])
 {
+    album_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
+    artist_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
     genre_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));    
+    year_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
+
     init_db();
-    folder_t *curr = genre_folder_list->root;
-    while (curr != NULL) {
-        printf("name = %s, path_name = %s\n", curr->name, curr->path_name);
-        curr = curr->next;
-    }
     return fuse_main(argc, argv, &ytfs_oper, NULL);
 }
 
