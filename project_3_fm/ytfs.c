@@ -10,33 +10,45 @@
 
 #define FUSE_USE_VERSION 26
 #define NUM_CATEGORY 4
+#define DB_NAME "ytfs.db"
+#define TABLE_NAME "mp3"
 
 #include <fuse.h>
+#include <sqlite3.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <stdlib.h>
+
+#include "ytfs_list.h"
 
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello.mp3";
 
 static const char *CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
+static folder_list_t *genre_folder_list = NULL;
 
 bool is_directory(const char *path);
 bool is_root_directory(const char *path);
-bool is_category_directory(const char *path); 
+bool is_category_directory(const char *path);
+bool is_sub_category_directory(const char *path); 
 bool is_file(const char *path);
+void init_db(void);
 
-static int hello_getattr(const char *path, struct stat *stbuf)
+static int ytfs_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
 
 	memset(stbuf, 0, sizeof(struct stat));
 	if (is_root_directory(path)) {
 		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 3;
+		stbuf->st_nlink = 4;
 	} else if (is_category_directory(path)) { 
+        stbuf->st_mode = S_IFDIR | 0755;
+		stbuf->st_nlink = 3;
+    } else if (is_sub_category_directory(path)) {
         stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
     } else if (is_file(path)) {
@@ -50,7 +62,7 @@ static int hello_getattr(const char *path, struct stat *stbuf)
 	return res;
 }
 
-static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			 off_t offset, struct fuse_file_info *fi)
 {
 	(void) offset;
@@ -71,15 +83,24 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         }
     }
 
-    // Fill each category folder with files
-    if (is_category_directory(path)) {
+    // Fill each category folder with specific folder names
+    if (is_category_directory(path) && strcmp(path, "/Genre") == 0) {
+        folder_t *curr = genre_folder_list->root;
+        while (curr != NULL) {
+            filler(buf, curr->name + 1, NULL, 0);
+            curr = curr->next;
+        }
+    }
+
+    // Fill each sub-category folder with files
+    if (is_sub_category_directory(path)) {
         filler(buf, hello_path + 1, NULL, 0);
     }
 
 	return 0;
 }
 
-static int hello_open(const char *path, struct fuse_file_info *fi)
+static int ytfs_open(const char *path, struct fuse_file_info *fi)
 {
 	if (!is_file(path))
 		return -ENOENT;
@@ -90,7 +111,7 @@ static int hello_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
-static int hello_read(const char *path, char *buf, size_t size, off_t offset,
+static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
 	size_t len;
@@ -111,21 +132,69 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
 	return size;
 }
 
-static struct fuse_operations hello_oper = {
-	.getattr	= hello_getattr,
-	.readdir	= hello_readdir,
-	.open		= hello_open,
-	.read		= hello_read,
+static struct fuse_operations ytfs_oper = {
+	.getattr	= ytfs_getattr,
+	.readdir	= ytfs_readdir,
+	.open		= ytfs_open,
+	.read		= ytfs_read,
 };
+
+int callback(void *data, int argc, char **argv, char **col_names) {
+    int i;
+    fprintf(stdout, "%s: ", (const char*) data);
+    for (i = 0; i < argc; i++) {
+        printf("%s = %s\n", col_names[i], argv[i] ? argv[i] : "NULL");
+        if (strcmp(col_names[i], "genre") == 0) {
+            insert_node(genre_folder_list, argv[i]);
+        }
+    }
+    printf("\n");
+    return 0;
+}
+
+void init_db(void) 
+{
+    sqlite3 *db;
+    char *err_msg = 0;
+    int rc;
+    char *query;
+    const char* data = "Callback function called";
+
+    rc = sqlite3_open(DB_NAME, &db);
+    if (rc) {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        exit(1);
+    }
+
+    query = "SELECT DISTINCT genre from mp3;";
+
+    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+
+    sqlite3_close(db);
+}
 
 int main(int argc, char *argv[])
 {
-	return fuse_main(argc, argv, &hello_oper, NULL);
+    genre_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));    
+    init_db();
+    folder_t *curr = genre_folder_list->root;
+    while (curr != NULL) {
+        printf("genre = %s\n", curr->name);
+        curr = curr->next;
+    }
+    return fuse_main(argc, argv, &ytfs_oper, NULL);
 }
 
 bool is_directory(const char *path)
 {
-    return is_root_directory(path) || is_category_directory(path);
+    return is_root_directory(path) || is_category_directory(path)
+        || is_sub_category_directory(path);
 }
 
 bool is_root_directory(const char *path)
@@ -146,6 +215,30 @@ bool is_category_directory(const char *path)
     return false;
 }
 
+bool is_sub_category_directory(const char *path) {
+    folder_t *curr = genre_folder_list->root;
+    bool begins_with_category_directory = false;
+    bool in_sub_category_list = true;
+    int i;
+
+    while (curr != NULL) {
+        if (curr->name != NULL && strcmp(curr->name, path) == 0) {
+            in_sub_category_list = true;
+        }
+        curr = curr->next;
+    }
+
+    for (i = 0; i < NUM_CATEGORY; i++) {
+        const char *cat_dir = CATEGORY_DIRS[i];
+        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
+            begins_with_category_directory = true;
+            break;
+        }
+    }
+
+    return in_sub_category_list && begins_with_category_directory;
+}
+
 bool is_file(const char *path)
 {
     bool begins_with_category_directory = false;
@@ -156,6 +249,7 @@ bool is_file(const char *path)
         const char *cat_dir = CATEGORY_DIRS[i];
         if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
             begins_with_category_directory = true;
+            break;
         }
     }
 

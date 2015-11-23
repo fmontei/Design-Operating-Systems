@@ -11,7 +11,9 @@ def run(download = None,
     errors = []
     file_or_dir = {}
 
-    init_db()
+    retval, error, conn = init_db()
+    if conn is None:
+        return False, error
     
     if download:
         file_or_dir['action'] = 'download'
@@ -32,7 +34,7 @@ def run(download = None,
         download_files(file_or_dir)
         files_to_process = get_files_from_dir(file_or_dir['path'], 
             is_dir = True) 
-        errors = parse_header_info(files_to_process)
+        errors = parse_header_info(conn = conn, files = files_to_process)
     elif upload:           
         files_to_process = []
         if file_or_dir['type'] == 'dir':
@@ -48,17 +50,24 @@ def run(download = None,
 def init_db():
     import sqlite3
     conn = sqlite3.connect(DB_NAME)
-    
     cursor = conn.cursor()
+    error = '' 
+
     try:
+        cursor.execute('PRAGMA encoding="UTF-8";')
         cursor.execute('CREATE TABLE {table} '\
-            '(file text, title text, artist text, album text, genre text, '\
+            '(id integer primary key autoincrement, file text, title text, '\
+            'artist text, album text, genre text, '\
             'year text);'.format(table = TABLE_NAME))
+        """
         cursor.execute('CREATE UNIQUE INDEX ukey ON {table} '\
             '(file, title, artist, album, genre, year);'\
             .format(table = TABLE_NAME))
+        """
     except sqlite3.OperationalError as e:
-        pass
+        error = 'Error initializing DB. Error: {e}.'.format(e = e)
+
+    return True, error, conn
 
 def get_files_from_dir(file_or_dir, is_dir = False):
     from os import walk
@@ -112,7 +121,7 @@ def upload_files(files, file_or_dir):
             key.set_contents_from_filename(file)
             key.set_acl('public-read')
 
-def parse_header_info(files):
+def parse_header_info(conn, files):
     import eyed3
     from eyed3.mp3 import isMp3File
     
@@ -131,20 +140,26 @@ def parse_header_info(files):
             year = mp3_file.tag.release_date or mp3_file.tag.recording_date
             if genre:
                 genre = genre.name
-            insert_into_db(file = file, artist = artist, album = album, 
+            insert_into_db(conn = conn, file = file, artist = artist, album = album, 
                 title = title, genre = genre, year = year)
         else:
             errors.append('No tag found for mp3 file {file}.'.format(file = file))
-            insert_into_db(file = file) # All values default to 'Unknown'
+            insert_into_db(conn = conn, file = file) # All values default to 'Unknown'
     if errors:
         return False, errors
 
     return True, ''
 
-def insert_into_db(file, title = 'Unknown', artist = 'Unknown', 
+def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown', 
     album = 'Unknown', genre = 'Unknown', year = 'Unknown'):
     import sqlite3
     conn = sqlite3.connect(DB_NAME)
+
+    title = title.encode('utf-8')
+    artist = artist.encode('utf-8')
+    album = album.encode('utf-8')
+    genre = genre.encode('utf-8')
+    year = year.encode('utf-8')
 
     cursor = conn.cursor()
     query = 'INSERT INTO {table} (file, title, artist, '\
@@ -154,6 +169,7 @@ def insert_into_db(file, title = 'Unknown', artist = 'Unknown',
                 artist = artist, album = album, genre = genre, 
                 year = year)
     cursor.execute(query)
+    conn.commit()
     
 if __name__ == '__main__':
     parser = OptionParser()

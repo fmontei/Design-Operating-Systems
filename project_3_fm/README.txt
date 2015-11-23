@@ -1,8 +1,9 @@
 === SETUP ===
-1) install pip: http://pip.readthedocs.org/en/stable/installing/
-2a) run: sudo pip install -U boto
-2b) run: sudo pip install -U eyed3
-3) Create file boto.cfg from the credentials.csv file I'm attaching. 
+1) install sqlite3 for C: http://www.tutorialspoint.com/sqlite/sqlite_installation.htm
+2) install pip: http://pip.readthedocs.org/en/stable/installing/
+3a) run: sudo pip install -U boto
+3b) run: sudo pip install -U eyed3
+4) Create file boto.cfg from the credentials.csv file I'm attaching. 
 
 Include the [Credentials] header. 
 Fill in the pieces in {} with the data in credentials.csv.
