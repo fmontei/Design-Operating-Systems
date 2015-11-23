@@ -73,7 +73,10 @@ bool is_sub_category_directory(const char *path)
 
     for (i = 0; i < NUM_CATEGORY; i++) {
         const char *cat_dir = CATEGORY_DIRS[i];
-        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
+        // If the category contains the path but isn't the
+        // same length as the category, then true
+        if ((strncmp(cat_dir, path, strlen(cat_dir)) == 0) &&
+            (strlen(path) != strlen(cat_dir))) {
             begins_with_category_directory = true;
             break;
         }
@@ -153,12 +156,12 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
     } else if (is_file(path)) {
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
-        size_t len = get_sub_directory_strlen(path);
+        /*size_t len = get_sub_directory_strlen(path);
         if (len == -1) {
             printf("Fatal: Subdirectory not found. Path = %s. Len = %d\n", path, (int) len);
             exit(1);
-        }
-        stbuf->st_size = len;
+        }*/
+        stbuf->st_size = strlen(hello_str);
     } else {
 		res = -ENOENT;
     }
@@ -188,7 +191,7 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     }
 
     // Fill each category folder with specific folder names
-    if (is_category_directory(path) && strcmp(path, "/Genre") == 0) {
+    else if (is_category_directory(path) && strcmp(path, "/Genre") == 0) {
         folder_t *curr = genre_folder_list->root;
         while (curr != NULL) {
             // DO NOT ADD ONE to curr->name
@@ -198,7 +201,7 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     }
 
     // Fill each sub-category folder with files
-    if (is_sub_category_directory(path)) {
+    else if (is_sub_category_directory(path)) {
         filler(buf, hello_path + 1, NULL, 0);
     }
 
