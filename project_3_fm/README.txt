@@ -1,3 +1,9 @@
+=== USAGE ===
+1) python ytfs -d <root_directory>
+2) ./ytfs <mount_directory>
+
+This will be streamlined soon into one Python call later
+
 === PYTHON SETUP ===
 1) install pip: http://pip.readthedocs.org/en/stable/installing/
 2a) run: sudo pip install -U boto
