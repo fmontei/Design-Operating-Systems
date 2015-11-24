@@ -24,6 +24,8 @@
 
 #include <iostream>
 #include <string>
+#include <list>
+#include <unordered_map>
 
 #include "ytfs_list.h"
 
@@ -37,6 +39,11 @@ static folder_list_t *album_folder_list = NULL;
 static folder_list_t *artist_folder_list = NULL;
 static folder_list_t *genre_folder_list = NULL;
 static folder_list_t *year_folder_list = NULL;
+static unordered_map<string, list<string>> album_mp3_map;
+static unordered_map<string, list<string>> arist_mp3_map;
+static unordered_map<string, list<string>> genre_mp3_map;
+static unordered_map<string, list<string>> year_mp3_map;
+
 static struct fuse_operations ytfs_oper;
 
 void init_db(void);
@@ -91,15 +98,6 @@ bool is_sub_category_directory(const string &path)
         ends_with_mp3 = path.compare(path.length() - mp3.length(), mp3.length(), mp3) == 0;
     }
 
-    /*size_t size = strlen(path);
-    if (size >= 4 &&
-        path[size - 4] == '.' &&
-        path[size - 3] == 'm' &&
-        path[size - 2] == 'p' &&
-        path[size - 1] == '3') {
-        ends_with_mp3 = true;
-    }*/
-
     return in_sub_category_list && begins_with_category_directory
         && !ends_with_mp3;
 }
@@ -121,15 +119,6 @@ bool is_file(const string &path)
     if (path.length() >= 4) {
         ends_with_mp3 = path.compare(path.length() - mp3.length(), mp3.length(), mp3) == 0;
     }
-
-    /*size_t size = strlen(path);
-    if (size >= 4 &&
-        path[size - 4] == '.' &&
-        path[size - 3] == 'm' &&
-        path[size - 2] == 'p' &&
-        path[size - 1] == '3') {
-        ends_with_mp3 = true;
-    }*/
 
     // Treat paths like /sample.mp3 and /Album/sample.mp3 and /Album/<path>/sample.3
     // valid file paths 
@@ -257,10 +246,9 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 	return size;
 }
 
-int callback(void *data, int argc, char **argv, char **col_names) {
-    fprintf(stdout, "%s: ", (const char*) data);
+int category_callback(void *data, int argc, char **argv, char **col_names) {
     for (int i = 0; i < argc; i++) {
-        printf("%s = %s\n", col_names[i], argv[i] ? argv[i] : "NULL");
+        // printf("%s = %s\n", col_names[i], argv[i] ? argv[i] : "NULL");
         if (strcmp(col_names[i], "album") == 0) {
             insert_node(album_folder_list, argv[i], "/Album/");
         }
@@ -272,6 +260,36 @@ int callback(void *data, int argc, char **argv, char **col_names) {
         }
         if (strcmp(col_names[i], "year") == 0) {
             insert_node(year_folder_list, argv[i], "/Year/");
+        }
+    }
+    return 0;
+}
+
+int mp3_callback(void *data, int argc, char **argv, char **col_names) {
+    string file;
+    unordered_map<string, list<string>>::const_iterator mp3_it;
+    list<string> mp3_list;
+    string key;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(col_names[i], "file") == 0) {
+            file = string(argv[i]);
+        }
+        if (strcmp(col_names[i], "album") == 0) {
+            key = string("/Album/") + string(argv[i]) + string("/");
+            cout << "key = " << key << endl;
+            mp3_it = album_mp3_map.find(key);
+            if (mp3_it != album_mp3_map.end()) {
+                mp3_list = mp3_it->second;
+                cout << "Found " << endl;
+            }
+            mp3_list.push_back(file);
+            album_mp3_map[key] = mp3_list;
+        }
+        if (strcmp(col_names[i], "artist") == 0) {
+        }
+        if (strcmp(col_names[i], "genre") == 0) {
+        }
+        if (strcmp(col_names[i], "year") == 0) {
         }
     }
     return 0;
@@ -292,7 +310,7 @@ void init_db(void)
     }
 
     query = string("SELECT DISTINCT album from mp3 ORDER BY album ASC;");
-    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
+    rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -301,7 +319,7 @@ void init_db(void)
     }
 
     query = string("SELECT DISTINCT artist from mp3 ORDER BY artist ASC;");
-    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
+    rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -310,7 +328,7 @@ void init_db(void)
     }
 
     query = string("SELECT DISTINCT genre from mp3 ORDER BY genre ASC;");
-    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
+    rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -319,7 +337,16 @@ void init_db(void)
     }
 
     query = string("SELECT DISTINCT year from mp3 ORDER BY year ASC;");
-    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
+    rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+
+    query = string("SELECT file, album from mp3 ORDER BY album, file ASC;");
+    rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -343,6 +370,19 @@ int main(int argc, char *argv[])
     year_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
 
     init_db();
+
+    unordered_map<string, list<string>>::const_iterator mp3_it;
+    mp3_it = album_mp3_map.find(string("/Album/Unknown/"));
+    list<string> mp3_list = mp3_it->second;
+    cout << "UNKNOWN COUNT = " << mp3_list.size() << endl;
+
+    cout << endl;
+    cout << endl;
+    std::list<string>::const_iterator iterator;
+    for (iterator = mp3_list.begin(); iterator != mp3_list.end(); ++iterator) {
+        std::cout << *iterator << std::endl;
+    }
+
     return fuse_main(argc, argv, &ytfs_oper, NULL);
 }
 
