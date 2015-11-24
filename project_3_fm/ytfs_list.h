@@ -1,9 +1,11 @@
 #ifndef __YTFS_LIST__
 #define __YTFS_LIST__
 
+#include <string>
+
 typedef struct folder {
-    char *name;
-    char *path_name;
+    std::string *name;
+    std::string *path_name;
     struct folder *next;
 } folder_t;
 

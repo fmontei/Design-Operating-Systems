@@ -29,10 +29,10 @@
 
 using namespace std;
 
-static string = "Hello World!\n";
-static const char *hello_path = "/hello.mp3";
+static const string hello_str = "Hello World!\n";
+static const string hello_path = "/hello.mp3";
 
-static const char *CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
+static string CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
 static folder_list_t *album_folder_list = NULL;
 static folder_list_t *artist_folder_list = NULL;
 static folder_list_t *genre_folder_list = NULL;
@@ -40,31 +40,31 @@ static folder_list_t *year_folder_list = NULL;
 static struct fuse_operations ytfs_oper;
 
 void init_db(void);
-bool is_directory(const char *path);
-bool is_root_directory(const char *path);
-bool is_category_directory(const char *path);
-bool is_sub_category_directory(const char *path); 
-bool is_file(const char *path);
-size_t get_sub_directory_strlen(const char *path);
+bool is_directory(const string &path);
+bool is_root_directory(const string &path);
+bool is_category_directory(const string &path);
+bool is_sub_category_directory(const string &path); 
+bool is_file(const string &path);
+int get_sub_directory_strlen(const string &path);
 
-bool is_directory(const char *path)
+bool is_directory(const string &path)
 {
     return is_root_directory(path) 
         || is_category_directory(path)
         || is_sub_category_directory(path);
 }
 
-bool is_root_directory(const char *path)
+bool is_root_directory(const string &path)
 {
-    return strcmp(path, "/") == 0;
+    return path.compare("/") == 0;
 }
 
-bool is_category_directory(const char *path) 
+bool is_category_directory(const string &path) 
 {
     int i;
 
     for (i = 0; i < NUM_CATEGORY; i++) {
-        if (strcmp(path, CATEGORY_DIRS[i]) == 0) {
+        if (path.compare(CATEGORY_DIRS[i]) == 0) {
             return true;
         }
     }
@@ -72,73 +72,79 @@ bool is_category_directory(const char *path)
     return false;
 }
 
-bool is_sub_category_directory(const char *path) 
+bool is_sub_category_directory(const string &path) 
 {
     bool begins_with_category_directory = false;
     bool in_sub_category_list = true; // NEED TO FIX
     bool ends_with_mp3 = false;
-    int i;
+    const string mp3 = ".mp3";
 
-    for (i = 0; i < NUM_CATEGORY; i++) {
-        const char *cat_dir = CATEGORY_DIRS[i];
-        // If the category contains the path but isn't the
-        // same length as the category, then true
-        if ((strncmp(cat_dir, path, strlen(cat_dir)) == 0) &&
-            (strlen(path) != strlen(cat_dir))) {
+    for (int i = 0; i < NUM_CATEGORY; i++) {
+        const string cat_dir = CATEGORY_DIRS[i];
+        if (path.substr(0, cat_dir.size()) == cat_dir) {
             begins_with_category_directory = true;
             break;
         }
     }
 
-    size_t size = strlen(path);
+    if (path.length() >= 4) {
+        ends_with_mp3 = path.compare(path.length() - mp3.length(), mp3.length(), mp3) == 0;
+    }
+
+    /*size_t size = strlen(path);
     if (size >= 4 &&
         path[size - 4] == '.' &&
         path[size - 3] == 'm' &&
         path[size - 2] == 'p' &&
         path[size - 1] == '3') {
         ends_with_mp3 = true;
-    } 
+    }*/
 
     return in_sub_category_list && begins_with_category_directory
         && !ends_with_mp3;
 }
 
-bool is_file(const char *path)
+bool is_file(const string &path)
 {
     bool begins_with_category_directory = false;
     bool ends_with_mp3 = false;
-    int i;
+    const string mp3 = ".mp3";
 
-    for (i = 0; i < NUM_CATEGORY; i++) {
-        const char *cat_dir = CATEGORY_DIRS[i];
-        if (strncmp(cat_dir, path, strlen(cat_dir)) == 0) {
+    for (int i = 0; i < NUM_CATEGORY; i++) {
+        const string cat_dir = CATEGORY_DIRS[i];
+        if (path.substr(0, cat_dir.size()) == cat_dir) {
             begins_with_category_directory = true;
             break;
         }
     }
 
-    size_t size = strlen(path);
+    if (path.length() >= 4) {
+        ends_with_mp3 = path.compare(path.length() - mp3.length(), mp3.length(), mp3) == 0;
+    }
+
+    /*size_t size = strlen(path);
     if (size >= 4 &&
         path[size - 4] == '.' &&
         path[size - 3] == 'm' &&
         path[size - 2] == 'p' &&
         path[size - 1] == '3') {
         ends_with_mp3 = true;
-    } 
+    }*/
 
     // Treat paths like /sample.mp3 and /Album/sample.mp3 and /Album/<path>/sample.3
     // valid file paths 
     return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
 }
 
-size_t get_sub_directory_strlen(const char *path) {
+int get_sub_directory_strlen(const string &path) {
     folder_t *curr = NULL;
-    
-    if (strncmp("/Genre", path, strlen("/Genre")) == 0) {
+    const string genre = "/Genre";    
+
+    if (path.substr(0, genre.size()) == genre) {
         curr = genre_folder_list->root;
         while (curr != NULL) {
-            if (strcmp(curr->path_name, path) == 0) {
-                return strlen(curr->path_name);
+            if (curr->path_name->compare(path) == 0) {
+                return curr->path_name->size();
             }
             curr = curr->next;
         }
@@ -164,7 +170,7 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
     } else if (is_file(path)) {
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
-        stbuf->st_size = strlen(hello_str);
+        stbuf->st_size = strlen(hello_str.c_str());
     } else {
 		res = -ENOENT;
     }
@@ -189,7 +195,7 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     // Populate the root directory with the core category folders
     if (is_root_directory(path)) {
         for (i = 0; i < NUM_CATEGORY; i++) {
-            filler(buf, CATEGORY_DIRS[i] + 1, NULL, 0);
+            filler(buf, CATEGORY_DIRS[i].c_str() + 1, NULL, 0);
         }
     }
 
@@ -206,14 +212,14 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
             curr = year_folder_list->root;
         }
         while (curr != NULL) { 
-            filler(buf, curr->name, NULL, 0); // DO NOT ADD ONE to curr->name
+            filler(buf, curr->name->c_str(), NULL, 0); // DO NOT ADD ONE to curr->name
             curr = curr->next;
         }
     }
 
     // Fill each sub-category folder with files
     else if (is_sub_category_directory(path)) {
-        filler(buf, hello_path + 1, NULL, 0);
+        filler(buf, hello_path.c_str() + 1, NULL, 0);
     }
 
 	return 0;
@@ -233,17 +239,17 @@ static int ytfs_open(const char *path, struct fuse_file_info *fi)
 static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
-	size_t len;
+	unsigned int len;
 	(void) fi;
 
 	if (!is_file(path))
 		return -ENOENT;
 
-	len = strlen(hello_str);
+	len = hello_str.size();
 	if (offset < len) {
 		if (offset + size > len)
 			size = len - offset;
-		memcpy(buf, hello_str + offset, size);
+		memcpy(buf, hello_str.c_str() + offset, size);
 	} else {
 		size = 0;
     }
@@ -252,9 +258,8 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 }
 
 int callback(void *data, int argc, char **argv, char **col_names) {
-    int i;
     fprintf(stdout, "%s: ", (const char*) data);
-    for (i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
         printf("%s = %s\n", col_names[i], argv[i] ? argv[i] : "NULL");
         if (strcmp(col_names[i], "album") == 0) {
             insert_node(album_folder_list, argv[i], "/Album/");
@@ -269,7 +274,6 @@ int callback(void *data, int argc, char **argv, char **col_names) {
             insert_node(year_folder_list, argv[i], "/Year/");
         }
     }
-    printf("\n");
     return 0;
 }
 
@@ -278,7 +282,7 @@ void init_db(void)
     sqlite3 *db;
     char *err_msg = 0;
     int rc;
-    char *query;
+    string query;
     const char* data = "Callback function called";
 
     rc = sqlite3_open(DB_NAME, &db);
@@ -287,8 +291,8 @@ void init_db(void)
         exit(1);
     }
 
-    query = "SELECT DISTINCT album from mp3 ORDER BY album ASC;";
-    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    query = string("SELECT DISTINCT album from mp3 ORDER BY album ASC;");
+    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -296,8 +300,8 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = "SELECT DISTINCT artist from mp3 ORDER BY artist ASC;";
-    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    query = string("SELECT DISTINCT artist from mp3 ORDER BY artist ASC;");
+    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -305,8 +309,8 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = "SELECT DISTINCT genre from mp3 ORDER BY genre ASC;";
-    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    query = string("SELECT DISTINCT genre from mp3 ORDER BY genre ASC;");
+    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -314,8 +318,8 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = "SELECT DISTINCT year from mp3 ORDER BY year ASC;";
-    rc = sqlite3_exec(db, query, callback, (void*)data, &err_msg);
+    query = string("SELECT DISTINCT year from mp3 ORDER BY year ASC;");
+    rc = sqlite3_exec(db, query.c_str(), callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
