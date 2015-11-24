@@ -147,7 +147,7 @@ list<string> get_list_by_path(const char *path, unordered_map<string, list<strin
     return mp3_it->second;
 }
 
-int get_file_size(const char *path)
+string get_absolute_file_path(const char *path)
 {
     string absolute_file_path;
     string file_name_in_path;
@@ -163,13 +163,42 @@ int get_file_size(const char *path)
     }
     absolute_file_path = it->second;
 
+    return absolute_file_path;
+}
+
+int get_file_size(const char *path)
+{
+    string absolute_file_path = get_absolute_file_path(path);
+
     FILE *mp3_fp = fopen(absolute_file_path.c_str(), "r");
+    if (mp3_fp == NULL) {
+        printf("Error could not open file. Path: %s.\n", path);
+        exit(1);
+    }
+
     fseek(mp3_fp, 0L, SEEK_END);
     const int size = ftell(mp3_fp);
     fclose(mp3_fp);
 
     return size;
 }
+
+long unsigned int get_file_handle(const char *path)
+{
+    string absolute_file_path = get_absolute_file_path(path);
+
+    FILE *mp3_fp = fopen(absolute_file_path.c_str(), "r");
+    if (mp3_fp == NULL) {
+        printf("Error could not open file. Path: %s.\n", path);
+        exit(1);
+    } 
+
+    const long unsigned int file_handle = fileno(mp3_fp);
+    //fclose(mp3_fp);
+
+    return file_handle;
+}
+
 
 static int ytfs_getattr(const char *path, struct stat *stbuf)
 {
@@ -277,12 +306,25 @@ static int ytfs_open(const char *path, struct fuse_file_info *fi)
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
+    //fi->fh = get_file_handle(path);
+    string absolute_file_path = get_absolute_file_path(path);
+    int res = open(absolute_file_path.c_str(), fi->flags);
+    if (res == -1) {
+        return -ENOENT;
+    }
+
+    close(res);
+
+    // printf("OPEN file handle = %d\n", fi->fh);
+
 	return 0;
 }
 
 static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
+    int fd;
+    int res;
 	unsigned int len;
 	(void) fi;
 
@@ -298,20 +340,6 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 		size = 0;
     }*/
 
-    string absolute_file_path;
-    string file_name_in_path;
-    string cpp_path = string(path);
-    int index = cpp_path.find_last_of("/") + 1;
-    file_name_in_path = cpp_path.substr(index);
-    
-    unordered_map<string, string>::const_iterator it;
-    it = file_look_up_map.find(file_name_in_path);
-    if (it == file_look_up_map.end()) {
-        printf("Error: filename not found in file_look_up_map. Filename: %s.\n", 
-            file_name_in_path.c_str());
-    }
-    absolute_file_path = it->second;
-
     // Read in the file using the absolute file path
     // FILE *mp3 = fopen(absolute_file_path.c_str(), "r");
     //int retval = pread(fi->fh, buf, size, offset);
@@ -319,12 +347,24 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
     //{
         //retval = -ENOENT;
     //}
+    string absolute_file_path = get_absolute_file_path(path);
+    fd = open(absolute_file_path.c_str(), O_RDONLY);
+    if (fd == -1) {
+        return -ENOENT;
+    }
 
-    cout << file_name_in_path << " -> " << absolute_file_path << endl;
+    res = pread(fd, buf, size, offset);
+    if (res == -1) {
+        res = -ENOENT;
+    }
 
+    // cout << file_name_in_path << " -> " << absolute_file_path << endl;
+
+    //printf("READ file handle = %d, buf = %s, size = %d, offset = %d\n", fi->fh, buf, (int) size, (int) offset);
     printf("PATH = %s size = %d\n", path, (int) size);
 
-	return size;
+    close(fd);
+	return res;
 }
 
 void init_db(void) 
