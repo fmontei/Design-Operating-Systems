@@ -155,7 +155,10 @@ def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown',
     import sqlite3
     conn = sqlite3.connect(DB_NAME)
 
-    title = title.encode('utf-8').replace(' ', '_')
+    if title == 'Unknown':
+        title = file[file.rindex('/') + 1:]
+    else:
+        title = title.encode('utf-8').replace(' ', '_') + '.mp3'
     artist = artist.encode('utf-8').replace(' ', '_')
     album = album.encode('utf-8').replace(' ', '_')
     genre = genre.encode('utf-8').replace(' ', '_')
