@@ -34,7 +34,6 @@ using namespace std;
 
 static const string hello_str = "Hello World!\n";
 static const string hello_path = "/hello.mp3";
-static const string hello_abs_path = "/home/osboxes/Desktop/3210/Design-Operating-Systems/project_3_fm/music/metallica_-_enter_sandman.mp3";
 
 static string CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
 static folder_list_t *album_folder_list = NULL;
@@ -45,16 +44,27 @@ static unordered_map<string, list<string>> album_mp3_map;
 static unordered_map<string, list<string>> artist_mp3_map;
 static unordered_map<string, list<string>> genre_mp3_map;
 static unordered_map<string, list<string>> year_mp3_map;
+static unordered_map<string, string> file_look_up_map; // Takes in title, returns absolute path to file
 
 static struct fuse_operations ytfs_oper;
 
 void init_db(void);
+bool begins_with(const char *str, const char *pre);
 bool is_directory(const string &path);
 bool is_root_directory(const string &path);
 bool is_category_directory(const string &path);
 bool is_sub_category_directory(const string &path); 
 bool is_file(const string &path);
 int get_sub_directory_strlen(const string &path);
+int mp3_callback(void *data, int argc, char **argv, char **col_names);
+int category_callback(void *data, int argc, char **argv, char **col_names);
+int file_look_up_callback(void *data, int argc, char **argv, char **col_names);
+
+
+bool begins_with(const char *str, const char *pre) 
+{
+    return strncmp(pre, str, strlen(pre)) == 0;
+}
 
 bool is_directory(const string &path)
 {
@@ -70,9 +80,7 @@ bool is_root_directory(const string &path)
 
 bool is_category_directory(const string &path) 
 {
-    int i;
-
-    for (i = 0; i < NUM_CATEGORY; i++) {
+    for (int i = 0; i < NUM_CATEGORY; i++) {
         if (path.compare(CATEGORY_DIRS[i]) == 0) {
             return true;
         }
@@ -127,23 +135,6 @@ bool is_file(const string &path)
     return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
 }
 
-int get_sub_directory_strlen(const string &path) {
-    folder_t *curr = NULL;
-    const string genre = "/Genre";    
-
-    if (path.substr(0, genre.size()) == genre) {
-        curr = genre_folder_list->root;
-        while (curr != NULL) {
-            if (curr->path_name->compare(path) == 0) {
-                return curr->path_name->size();
-            }
-            curr = curr->next;
-        }
-    }
-
-    return -1;
-}
-
 list<string> get_list_by_path(const char *path, unordered_map<string, list<string>> map)
 {
     unordered_map<string, list<string>>::const_iterator mp3_it;
@@ -154,11 +145,6 @@ list<string> get_list_by_path(const char *path, unordered_map<string, list<strin
         exit(1);
     }
     return mp3_it->second;
-}
-
-bool begins_with(const char *str, const char *pre) 
-{
-    return strncmp(pre, str, strlen(pre)) == 0;
 }
 
 static int ytfs_getattr(const char *path, struct stat *stbuf)
@@ -191,7 +177,6 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 {
 	(void) offset;
 	(void) fi;
-    int i;
 
     // Since we're reading directories, reject all non-directories
 	if (!is_directory(path))
@@ -202,7 +187,7 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     // Populate the root directory with the core category folders
     if (is_root_directory(path)) {
-        for (i = 0; i < NUM_CATEGORY; i++) {
+        for (int i = 0; i < NUM_CATEGORY; i++) {
             filler(buf, CATEGORY_DIRS[i].c_str() + 1, NULL, 0);
         }
     }
@@ -251,10 +236,8 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
             const string year = cpp_path.substr(index);
             mp3_list = get_list_by_path(path, year_mp3_map);    
         }
-        //filler(buf, hello_path.c_str() + 1, NULL, 0);
 
         for (it = mp3_list.begin(); it != mp3_list.end(); ++it) {
-            std::cout << *it << std::endl;
             filler(buf, (*it).c_str(), NULL, 0);
         }
     }
@@ -282,85 +265,34 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 	if (!is_file(path))
 		return -ENOENT;
 
-	len = hello_str.size();
+	/*len = hello_str.size();
 	if (offset < len) {
 		if (offset + size > len)
 			size = len - offset;
 		memcpy(buf, hello_str.c_str() + offset, size);
 	} else {
 		size = 0;
+    }*/
+
+    string absolute_file_path;
+    string file_name_in_path;
+    string cpp_path = string(path);
+    int index = cpp_path.find_last_of("/") + 1;
+    file_name_in_path = cpp_path.substr(index);
+    
+    unordered_map<string, string>::const_iterator it;
+    it = file_look_up_map.find(file_name_in_path);
+    if (it == file_look_up_map.end()) {
+        printf("Error: filename not found in file_look_up_map. Filename: %s.\n", 
+            file_name_in_path.c_str());
     }
+    absolute_file_path = it->second;
+
+    cout << file_name_in_path << " -> " << absolute_file_path << endl;
+
+    printf("PATH = %s\n", path);
 
 	return size;
-}
-
-int category_callback(void *data, int argc, char **argv, char **col_names) {
-    for (int i = 0; i < argc; i++) {
-        if (strcmp(col_names[i], "album") == 0) {
-            insert_node(album_folder_list, argv[i], "/Album/");
-        }
-        if (strcmp(col_names[i], "artist") == 0) {
-            insert_node(artist_folder_list, argv[i], "/Artist/");
-        }
-        if (strcmp(col_names[i], "genre") == 0) {
-            insert_node(genre_folder_list, argv[i], "/Genre/");
-        }
-        if (strcmp(col_names[i], "year") == 0) {
-            insert_node(year_folder_list, argv[i], "/Year/");
-        }
-    }
-    return 0;
-}
-
-int mp3_callback(void *data, int argc, char **argv, char **col_names) {
-    string title;
-    unordered_map<string, list<string>>::const_iterator mp3_it;
-    list<string> mp3_list;
-    string key;
-    for (int i = 0; i < argc; i++) {
-        if (strcmp(col_names[i], "title") == 0) {
-            title = string(argv[i]);
-        }
-        if (strcmp(col_names[i], "album") == 0) {
-            key = string("/Album/") + string(argv[i]);
-            mp3_it = album_mp3_map.find(key);
-            if (mp3_it != album_mp3_map.end()) {
-                mp3_list = mp3_it->second;
-            }
-            mp3_list.push_back(title);
-            album_mp3_map[key] = mp3_list;
-        }
-        if (strcmp(col_names[i], "artist") == 0) {
-            key = string("/Artist/") + string(argv[i]);
-            cout << key << endl;
-            mp3_it = artist_mp3_map.find(key);
-            if (mp3_it != artist_mp3_map.end()) {
-                mp3_list = mp3_it->second;
-            }
-            mp3_list.push_back(title);
-            cout << mp3_list.size() << endl;
-            artist_mp3_map[key] = mp3_list;
-        }
-        if (strcmp(col_names[i], "genre") == 0) {
-            key = string("/Genre/") + string(argv[i]);
-            mp3_it = genre_mp3_map.find(key);
-            if (mp3_it != genre_mp3_map.end()) {
-                mp3_list = mp3_it->second;
-            }
-            mp3_list.push_back(title);
-            genre_mp3_map[key] = mp3_list;
-        }
-        if (strcmp(col_names[i], "year") == 0) {
-            key = string("/Year/") + string(argv[i]);
-            mp3_it = year_mp3_map.find(key);
-            if (mp3_it != year_mp3_map.end()) {
-                mp3_list = mp3_it->second;
-            }
-            mp3_list.push_back(title);
-            year_mp3_map[key] = mp3_list;
-        }
-    }
-    return 0;
 }
 
 void init_db(void) 
@@ -422,7 +354,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, artist from mp3 ORDER BY album, file ASC;");
+    query = string("SELECT title, artist from mp3 ORDER BY artist, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -431,7 +363,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, genre from mp3 ORDER BY album, file ASC;");
+    query = string("SELECT title, genre from mp3 ORDER BY genre, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -440,8 +372,18 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, year from mp3 ORDER BY album, file ASC;");
+    query = string("SELECT title, year from mp3 ORDER BY year, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+
+    // Query to populate file_look_up_map
+    query = string("SELECT file, title from mp3;");
+    rc = sqlite3_exec(db, query.c_str(), file_look_up_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
@@ -450,6 +392,89 @@ void init_db(void)
     }
 
     sqlite3_close(db);
+}
+
+int category_callback(void *data, int argc, char **argv, char **col_names) {
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(col_names[i], "album") == 0) {
+            insert_node(album_folder_list, argv[i], "/Album/");
+        }
+        if (strcmp(col_names[i], "artist") == 0) {
+            insert_node(artist_folder_list, argv[i], "/Artist/");
+        }
+        if (strcmp(col_names[i], "genre") == 0) {
+            insert_node(genre_folder_list, argv[i], "/Genre/");
+        }
+        if (strcmp(col_names[i], "year") == 0) {
+            insert_node(year_folder_list, argv[i], "/Year/");
+        }
+    }
+    return 0;
+}
+
+int mp3_callback(void *data, int argc, char **argv, char **col_names) {
+    string key, title;
+    unordered_map<string, list<string>>::const_iterator mp3_it;
+    list<string> mp3_list;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(col_names[i], "title") == 0) {
+            title = string(argv[i]);
+        }
+        if (strcmp(col_names[i], "album") == 0) {
+            key = string("/Album/") + string(argv[i]);
+            mp3_it = album_mp3_map.find(key);
+            if (mp3_it != album_mp3_map.end()) {
+                mp3_list = mp3_it->second;
+            }
+            mp3_list.push_back(title);
+            album_mp3_map[key] = mp3_list;
+        }
+        if (strcmp(col_names[i], "artist") == 0) {
+            key = string("/Artist/") + string(argv[i]);
+            mp3_it = artist_mp3_map.find(key);
+            if (mp3_it != artist_mp3_map.end()) {
+                mp3_list = mp3_it->second;
+            }
+            mp3_list.push_back(title);
+            artist_mp3_map[key] = mp3_list;
+        }
+        if (strcmp(col_names[i], "genre") == 0) {
+            key = string("/Genre/") + string(argv[i]);
+            mp3_it = genre_mp3_map.find(key);
+            if (mp3_it != genre_mp3_map.end()) {
+                mp3_list = mp3_it->second;
+            }
+            mp3_list.push_back(title);
+            genre_mp3_map[key] = mp3_list;
+        }
+        if (strcmp(col_names[i], "year") == 0) {
+            key = string("/Year/") + string(argv[i]);
+            mp3_it = year_mp3_map.find(key);
+            if (mp3_it != year_mp3_map.end()) {
+                mp3_list = mp3_it->second;
+            }
+            mp3_list.push_back(title);
+            year_mp3_map[key] = mp3_list;
+        }
+    }
+
+    return 0;
+}
+
+int file_look_up_callback(void *data, int argc, char **argv, char **col_names)
+{
+    string file, title;
+    for (int i = 0; i < argc; i++) {  
+        if (strcmp(col_names[i], "file") == 0) {
+            file = string(argv[i]);
+        } else if (strcmp(col_names[i], "title") == 0) {
+            title = string(argv[i]);
+        }
+    }
+
+    file_look_up_map[title] = file;
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -466,17 +491,9 @@ int main(int argc, char *argv[])
 
     init_db();
 
-    /* test code, leave uncommented 
-    unordered_map<string, list<string>>::const_iterator mp3_it;
-    mp3_it = artist_mp3_map.find(string("/Artist/Unknown"));
-    list<string> mp3_list = mp3_it->second;
-    cout << "UNKNOWN COUNT = " << mp3_list.size() << endl;
-
-    cout << endl;
-    cout << endl;
-    std::list<string>::const_iterator iterator;
-    for (iterator = mp3_list.begin(); iterator != mp3_list.end(); ++iterator) {
-        std::cout << *iterator << std::endl;
+    /*
+    for (auto kv : file_look_up_map) {
+        cout << kv.first << " " << kv.second << endl;
     }*/
 
     return fuse_main(argc, argv, &ytfs_oper, NULL);
