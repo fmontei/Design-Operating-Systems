@@ -1,6 +1,7 @@
 === USAGE ===
-1) python ytfs -d <root_directory>
-2) ./ytfs <mount_directory>
+1) source ytfs.env 
+2) python ytfs.py
+3) ./ytfs <mount_directory>
 
 This will be streamlined soon into one Python call later
 
