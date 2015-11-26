@@ -18,17 +18,17 @@ def run(root_dir,
     if conn is None:
         return False, error
     
-    if download_flg:
+    if download_flg is True:
         file_or_dir['action'] = 'download'
         file_or_dir['path'] = root_dir
-    elif upload_flg:
+    elif upload_flg is True:
         file_or_dir['action'] = 'upload'
         file_or_dir['path'] = root_dir
           
-    if download_flg:
+    if download_flg is True:
         download_files(file_or_dir)
         files_to_process = get_files_from_dir(file_or_dir['path']) 
-    elif upload_flg:           
+    elif upload_flg is True:           
         files_to_process = []
         files_to_process = get_files_from_dir(file_or_dir['path'])         
         upload_files(files_to_process, file_or_dir)
@@ -154,8 +154,11 @@ def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown',
         .format(table = TABLE_NAME, file = file, title = title, 
                 artist = artist, album = album, genre = genre, 
                 year = year)
-    cursor.execute(query)
-    conn.commit()
+    try:
+        cursor.execute(query)
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
     
 if __name__ == '__main__':
     import os
@@ -169,8 +172,8 @@ if __name__ == '__main__':
     root_dir = root_dir.strip() if root_dir is not None else root_dir
     mount_dir = mount_dir.strip() if mount_dir is not None else mount_dir
     search_dir = search_dir.strip() if search_dir is not None else search_dir
-    download_flg = download_flg.strip() if download_flg is not None else download_flg
-    upload_flg = upload_flg.strip() if upload_flg is not None else upload_flg
+    download_flg = download_flg.strip().lower() if download_flg is not None else download_flg
+    upload_flg = upload_flg.strip().lower() if upload_flg is not None else upload_flg
     
     params = [{'param': 'YTFS_ROOT_DIR', 'is_valid': root_dir is not None \
                 and isdir(root_dir)},
@@ -179,9 +182,9 @@ if __name__ == '__main__':
               {'param': 'YTFS_SEARCH_DIR', 'is_valid': search_dir is not None \
                 and isdir(search_dir)},
               {'param': 'YTFS_DOWNLOAD_FLG', 'is_valid': download_flg is not None \
-                and download_flg.lower() in ['true', 't', '1', 'false', 'f', '0']},
+                and download_flg in ['true', 't', '1', 'false', 'f', '0']},
               {'param': 'YTFS_UPLOAD_FLG', 'is_valid': upload_flg is not None \
-                and upload_flg.lower() in ['true', 't', '1', 'false', 'f', '0']}]
+                and upload_flg in ['true', 't', '1', 'false', 'f', '0']}]
 
     for param in params:
         if not param['is_valid']:
