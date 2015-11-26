@@ -166,7 +166,7 @@ string get_absolute_file_path(const char *path)
     return absolute_file_path;
 }
 
-int get_file_size(const char *path)
+size_t get_file_size(const char *path)
 {
     string absolute_file_path = get_absolute_file_path(path);
 
@@ -177,28 +177,11 @@ int get_file_size(const char *path)
     }
 
     fseek(mp3_fp, 0L, SEEK_END);
-    const int size = ftell(mp3_fp);
+    const size_t size = ftell(mp3_fp);
     fclose(mp3_fp);
 
     return size;
 }
-
-long unsigned int get_file_handle(const char *path)
-{
-    string absolute_file_path = get_absolute_file_path(path);
-
-    FILE *mp3_fp = fopen(absolute_file_path.c_str(), "r");
-    if (mp3_fp == NULL) {
-        printf("Error could not open file. Path: %s.\n", path);
-        exit(1);
-    } 
-
-    const long unsigned int file_handle = fileno(mp3_fp);
-    //fclose(mp3_fp);
-
-    return file_handle;
-}
-
 
 static int ytfs_getattr(const char *path, struct stat *stbuf)
 {
@@ -292,6 +275,7 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
         for (it = mp3_list.begin(); it != mp3_list.end(); ++it) {
             filler(buf, (*it).c_str(), NULL, 0);
+            printf("%s\n", (*it).c_str());
         }
     }
 
@@ -417,7 +401,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, album from mp3 ORDER BY album, file ASC;");
+    query = string("SELECT DISTINCT title, album from mp3 ORDER BY album, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -426,7 +410,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, artist from mp3 ORDER BY artist, file ASC;");
+    query = string("SELECT DISTINCT title, artist from mp3 ORDER BY artist, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -435,7 +419,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, genre from mp3 ORDER BY genre, file ASC;");
+    query = string("SELECT DISTINCT title, genre from mp3 ORDER BY genre, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -444,7 +428,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    query = string("SELECT title, year from mp3 ORDER BY year, file ASC;");
+    query = string("SELECT DISTINCT title, year from mp3 ORDER BY year, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -454,7 +438,7 @@ void init_db(void)
     }
 
     // Query to populate file_look_up_map
-    query = string("SELECT file, title from mp3;");
+    query = string("SELECT DISTINCT file, title from mp3;");
     rc = sqlite3_exec(db, query.c_str(), file_look_up_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -550,11 +534,11 @@ int file_look_up_callback(void *data, int argc, char **argv, char **col_names)
 }
 
 int main(int argc, char *argv[])
-{
+{    
     ytfs_oper.getattr = ytfs_getattr;	
 	ytfs_oper.open = ytfs_open;
 	ytfs_oper.read = ytfs_read;
-    ytfs_oper.readdir = ytfs_readdir;   
+    ytfs_oper.readdir = ytfs_readdir; 
 
     album_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
     artist_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
@@ -563,10 +547,10 @@ int main(int argc, char *argv[])
 
     init_db();
 
-    /*
+   
     for (auto kv : file_look_up_map) {
         cout << kv.first << " " << kv.second << endl;
-    }*/
+    }
 
     return fuse_main(argc, argv, &ytfs_oper, NULL);
 }

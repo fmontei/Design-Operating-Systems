@@ -131,20 +131,16 @@ bool is_file(const char *path)
     return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
 }
 
-size_t get_sub_directory_strlen(const char *path) {
-    folder_t *curr = NULL;
-    
-    if (strncmp("/Genre", path, strlen("/Genre")) == 0) {
-        curr = genre_folder_list->root;
-        while (curr != NULL) {
-            if (strcmp(curr->path_name, path) == 0) {
-                return strlen(curr->path_name);
-            }
-            curr = curr->next;
-        }
-    }
 
-    return -1;
+static int ytfs_access(const char *path, int mask)
+{
+	int res;
+
+	res = access(path, mask);
+	if (res == -1)
+		return -errno;
+
+	return 0;
 }
 
 static int ytfs_getattr(const char *path, struct stat *stbuf)
@@ -332,6 +328,7 @@ int main(int argc, char *argv[])
 	ytfs_oper.open = ytfs_open;
 	ytfs_oper.read = ytfs_read;
     ytfs_oper.readdir = ytfs_readdir;
+    ytfs_oper.access = ytfs_access;
 
     album_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
     artist_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
