@@ -9,11 +9,15 @@ def run(root_dir,
         mount_dir,
         search_dir,
         download_flg, 
-        upload_flg):
+        upload_flg, 
+        search_flg):
         
     retval, error, conn = init_db()
-    if conn is None:
+    if not retval:
         return False, error
+        
+    if search_flg is True:
+        search_disk_for_mp3_files(search_dir)
     
     local_files = get_files_from_root_dir(root_dir) 
     
@@ -34,6 +38,13 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     error = '' 
+    
+    # Recreate DB by deleting then creating
+    try:
+        cursor.execute('DROP TABLE {table};'.format(table = TABLE_NAME))
+    except sqlite3.OperationalError as e:
+        error = 'Error dropping DB. Error: {e}.'.format(e = e)
+        # Failing to Delete the DB is not a fatal error, ignore
 
     try:
         cursor.execute('PRAGMA encoding="UTF-8";')
@@ -46,8 +57,12 @@ def init_db():
             .format(table = TABLE_NAME))
     except sqlite3.OperationalError as e:
         error = 'Error initializing DB. Error: {e}.'.format(e = e)
-
+        return False, error, None
+        
     return True, error, conn
+    
+def search_disk_for_mp3_files(search_dir):
+    return
 
 def get_files_from_root_dir(root_dir):
     from os import walk
@@ -231,12 +246,14 @@ if __name__ == '__main__':
     search_dir = os.getenv('YTFS_SEARCH_DIR', None)
     download_flg = os.getenv('YTFS_DOWNLOAD_FLG', None)
     upload_flg = os.getenv('YTFS_UPLOAD_FLG', None)
+    search_flg = os.getenv('YTFS_SEARCH_FLG', None)
 
     root_dir = root_dir.strip() if root_dir is not None else root_dir
     mount_dir = mount_dir.strip() if mount_dir is not None else mount_dir
     search_dir = search_dir.strip() if search_dir is not None else search_dir
     download_flg = download_flg.strip().lower() if download_flg is not None else download_flg
     upload_flg = upload_flg.strip().lower() if upload_flg is not None else upload_flg
+    search_flg = search_flg.strip().lower() if search_flg is not None else search_flg
     
     params = [{'param': 'YTFS_ROOT_DIR', 'is_valid': root_dir is not None \
                 and isdir(root_dir)},
@@ -247,7 +264,9 @@ if __name__ == '__main__':
               {'param': 'YTFS_DOWNLOAD_FLG', 'is_valid': download_flg is not None \
                 and download_flg in ['true', 't', '1', 'false', 'f', '0']},
               {'param': 'YTFS_UPLOAD_FLG', 'is_valid': upload_flg is not None \
-                and upload_flg in ['true', 't', '1', 'false', 'f', '0']}]
+                and upload_flg in ['true', 't', '1', 'false', 'f', '0']},
+              {'param': 'YTFS_SEARCH_FLG', 'is_valid': search_flg is not None \
+                and search_flg in ['true', 't', '1', 'false', 'f', '0']}]
 
     for param in params:
         if not param['is_valid']:
@@ -264,6 +283,11 @@ if __name__ == '__main__':
         upload_flg = True
     elif upload_flg in ['false', 'f', '0']:
         upload_flg = False
+        
+    if search_flg in ['true', 't', '1']:
+        search_flg = True
+    elif search_flg in ['false', 'f', '0']:
+        search_flg = False
 
     if download_flg is True and upload_flg is True:
         raise Exception('Download/upload are mutually exclusive. Both cannot be true.')
@@ -276,7 +300,8 @@ if __name__ == '__main__':
         mount_dir = mount_dir,
         search_dir = search_dir,
         download_flg = download_flg,
-        upload_flg = upload_flg
+        upload_flg = upload_flg,
+        search_flg = search_flg
     )
     
     if errors:
