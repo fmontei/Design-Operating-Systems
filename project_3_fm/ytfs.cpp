@@ -1,13 +1,3 @@
-/*
-  FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
-
-  This program can be distributed under the terms of the GNU GPL.
-  See the file COPYING.
-
-  gcc -Wall hello.c `pkg-config fuse --cflags --libs` -o hello
-*/
-
 #define FUSE_USE_VERSION 26
 #define NUM_CATEGORY 4
 #define DB_NAME "ytfs.db"
@@ -290,7 +280,6 @@ static int ytfs_open(const char *path, struct fuse_file_info *fi)
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
-    //fi->fh = get_file_handle(path);
     string absolute_file_path = get_absolute_file_path(path);
     int res = open(absolute_file_path.c_str(), fi->flags);
     if (res == -1) {
@@ -298,9 +287,6 @@ static int ytfs_open(const char *path, struct fuse_file_info *fi)
     }
 
     close(res);
-
-    // printf("OPEN file handle = %d\n", fi->fh);
-
 	return 0;
 }
 
@@ -315,22 +301,6 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 	if (!is_file(path))
 		return -ENOENT;
 
-	/*len = hello_str.size();
-	if (offset < len) {
-		if (offset + size > len)
-			size = len - offset;
-		memcpy(buf, hello_str.c_str() + offset, size);
-	} else {
-		size = 0;
-    }*/
-
-    // Read in the file using the absolute file path
-    // FILE *mp3 = fopen(absolute_file_path.c_str(), "r");
-    //int retval = pread(fi->fh, buf, size, offset);
-    //if (retval == -1)
-    //{
-        //retval = -ENOENT;
-    //}
     string absolute_file_path = get_absolute_file_path(path);
     fd = open(absolute_file_path.c_str(), O_RDONLY);
     if (fd == -1) {
@@ -341,11 +311,6 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
     if (res == -1) {
         res = -ENOENT;
     }
-
-    // cout << file_name_in_path << " -> " << absolute_file_path << endl;
-
-    //printf("READ file handle = %d, buf = %s, size = %d, offset = %d\n", fi->fh, buf, (int) size, (int) offset);
-    printf("PATH = %s size = %d\n", path, (int) size);
 
     close(fd);
 	return res;

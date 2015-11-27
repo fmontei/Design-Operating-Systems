@@ -190,6 +190,9 @@ def search_apple_api(filename):
     title = None
     year = None
     
+    print('Using Apple Itunes API to search for metadata for file = {file}.'\
+        .format(file = filename))
+    
     base_url = 'https://itunes.apple.com/search?term='
     filename = filename.replace('.mp3', '').replace('_', '+')
     query = re.sub('[^A-Za-z0-9+]+', '', filename)
