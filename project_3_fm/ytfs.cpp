@@ -251,7 +251,6 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
         for (it = mp3_list.begin(); it != mp3_list.end(); ++it) {
             filler(buf, (*it).c_str(), NULL, 0);
-            printf("%s\n", (*it).c_str());
         }
     }
 
@@ -315,6 +314,7 @@ void init_db(void)
         exit(1);
     }
 
+    // Query to populate album_look_up_set
     query = string("SELECT DISTINCT album from mp3 ORDER BY album ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -324,6 +324,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
+    // Query to populate artist_look_up_set
     query = string("SELECT DISTINCT artist from mp3 ORDER BY artist ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -333,6 +334,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
+    // Query to populate genre_look_up_set
     query = string("SELECT DISTINCT genre from mp3 ORDER BY genre ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -342,6 +344,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
+    // Query to populate year_look_up_set
     query = string("SELECT DISTINCT year from mp3 ORDER BY year ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -491,10 +494,6 @@ int main(int argc, char *argv[])
     ytfs_oper.readdir = ytfs_readdir; 
 
     init_db();
-
-    for (auto kv : file_look_up_map) {
-        cout << kv.first << " " << kv.second << endl;
-    }
 
     return fuse_main(argc, argv, &ytfs_oper, NULL);
 }
