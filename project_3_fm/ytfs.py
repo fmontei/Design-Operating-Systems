@@ -1,5 +1,9 @@
 from optparse import OptionParser
 from os.path import isfile, isdir
+import eyed3
+from eyed3.mp3 import isMp3File
+from os import walk
+from os.path import abspath, dirname
 
 BUCKET_NAME = 'ytfs-felipe-yaling-garrett'
 DB_NAME = 'ytfs.db'
@@ -17,7 +21,7 @@ def run(root_dir,
         return False, error
         
     if search_flg is True:
-        search_disk_for_mp3_files(search_dir)
+        search_disk_for_mp3_files(search_dir = search_dir, root_dir = root_dir)
     
     local_files = get_files_from_root_dir(root_dir) 
     
@@ -61,13 +65,23 @@ def init_db():
         
     return True, error, conn
     
-def search_disk_for_mp3_files(search_dir):
-    return
-
-def get_files_from_root_dir(root_dir):
-    from os import walk
-    from os.path import abspath, dirname
+def search_disk_for_mp3_files(search_dir, root_dir):
+    from shutil import copyfile
     
+    existing_files = os.listdir(root_dir)
+    
+    for (dirpath, dirnames, filenames) in walk(search_dir):
+        for file_name in filenames:
+            abs_dirpath = abspath(dirpath)
+            if abs_dirpath != root_dir and isMp3File(file_name) and file_name not in existing_files:
+                try:
+                    copyfile(abs_dirpath + '/' + file_name, root_dir + '/' + file_name)
+                    print('Copying file = {file} in dir = {dir} to {root_dir}'\
+                        .format(file = file_name, dir = dirpath, root_dir = root_dir))
+                except:
+                    pass
+                
+def get_files_from_root_dir(root_dir):
     files_to_process = []
     
     for (dirpath, dirnames, filenames) in walk(root_dir):
@@ -134,9 +148,6 @@ def upload_files(files, upload_folder):
             key.set_acl('public-read')
 
 def update_database(conn, files):
-    import eyed3
-    from eyed3.mp3 import isMp3File
-    
     errors = []
 
     for file in files:
@@ -294,6 +305,10 @@ if __name__ == '__main__':
 
     if mount_dir == root_dir:
         raise Exception('MOUNT_DIR and ROOT_DIR must be different.')
+        
+    root_dir = abspath(root_dir)
+    mount_dir = abspath(mount_dir)
+    search_dir = abspath(search_dir)
         
     retval, errors = run(
         root_dir = root_dir,
