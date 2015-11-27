@@ -138,12 +138,12 @@ def update_database(conn, files):
             year = mp3_file.tag.release_date or mp3_file.tag.recording_date
             if genre:
                 genre = genre.name
-            insert_into_db(conn = conn, file = file['path'], artist = artist, 
+            insert_into_db(conn = conn, file = file, artist = artist, 
                 album = album, title = title, genre = genre, year = year)
         else:
             errors.append('No tag found for mp3 file {fi}.'.format(fi = file['name']))
             # All values default to 'Unknown'
-            insert_into_db(conn = conn, file = file['path']) 
+            insert_into_db(conn = conn, file = file) 
     if errors:
         return False, errors
 
@@ -153,21 +153,24 @@ def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown',
     album = 'Unknown', genre = 'Unknown', year = 'Unknown'):
     import sqlite3
     conn = sqlite3.connect(DB_NAME)
+    
+    if title == 'Unknown':
+        title, album, artist, genre, year = search_apple_api(file['name'])
 
     if title == 'Unknown':
-        title = file[file.rindex('/') + 1:]
+        title = file['name']
     else:
-        title = title.encode('utf-8').replace(' ', '_') + '.mp3'
-    artist = artist.encode('utf-8').replace(' ', '_')
-    album = album.encode('utf-8').replace(' ', '_')
-    genre = genre.encode('utf-8').replace(' ', '_')
-    year = str(year).encode('utf-8').replace(' ', '_')
+        title = title.encode('utf-8') + '.mp3'
+    artist = artist.encode('utf-8')
+    album = album.encode('utf-8')
+    genre = genre.encode('utf-8')
+    year = str(year).encode('utf-8')
 
     cursor = conn.cursor()
     query = 'INSERT INTO {table} (file, title, artist, '\
         'album, genre, year) VALUES("{file}", "{title}", "{artist}", '\
         '"{album}", "{genre}", "{year}");'\
-        .format(table = TABLE_NAME, file = file, title = title, 
+        .format(table = TABLE_NAME, file = file['path'], title = title, 
                 artist = artist, album = album, genre = genre, 
                 year = year)
     try:
@@ -175,6 +178,47 @@ def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown',
         conn.commit()
     except sqlite3.IntegrityError:
         pass
+        
+def search_apple_api(filename):
+    import requests
+    import re
+    from datetime import datetime
+    
+    album = None
+    artist = None
+    genre = None
+    title = None
+    year = None
+    
+    base_url = 'https://itunes.apple.com/search?term='
+    filename = filename.replace('.mp3', '').replace('_', '+')
+    query = re.sub('[^A-Za-z0-9+]+', '', filename)
+
+    req = requests.get(base_url + query + '&limit=1')
+    if req and req.status_code == 200:
+        json = req.json()
+        if json['results']:
+            try:
+                result = json['results'][0]
+                title = result['trackName']
+                album = result['collectionName'] 
+                artist = result['artistName']
+                genre = result['primaryGenreName']
+                year = result['releaseDate']
+                if year:
+                    year = year[:year.index('-')]
+                    if not isnumeric(year):
+                        year = None
+            except:
+                pass
+    
+    album = album if album else 'Unknown'
+    artist = artist if artist else 'Unknown'
+    genre = genre if genre else 'Unknown'
+    title = title if title else 'Unknown'
+    year = year if year else 'Unknown'
+    
+    return title, album, artist, genre, year
     
 if __name__ == '__main__':
     import os
