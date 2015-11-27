@@ -11,29 +11,21 @@ def run(root_dir,
         download_flg, 
         upload_flg):
         
-    errors = []
-    file_or_dir = {}
-
     retval, error, conn = init_db()
     if conn is None:
         return False, error
     
+    local_files = get_files_from_root_dir(root_dir) 
+    
     if download_flg is True:
-        file_or_dir['action'] = 'download'
-        file_or_dir['path'] = root_dir
-    elif upload_flg is True:
-        file_or_dir['action'] = 'upload'
-        file_or_dir['path'] = root_dir
-          
-    if download_flg is True:
-        download_files(file_or_dir)
-        files_to_process = get_files_from_dir(file_or_dir['path']) 
-    elif upload_flg is True:           
-        files_to_process = []
-        files_to_process = get_files_from_dir(file_or_dir['path'])         
-        upload_files(files_to_process, file_or_dir)
-
-    errors = parse_header_info(conn = conn, files = files_to_process)
+        downloaded_files = download_files(files = local_files,
+                                          download_folder = root_dir)
+        if downloaded_files:
+            local_files.extend(downloaded_files)
+    elif upload_flg is True:       
+        upload_files(files = local_files, upload_folder = root_dir)
+    
+    errors = update_database(conn = conn, files = local_files)
         
     return True, errors
 
@@ -57,44 +49,66 @@ def init_db():
 
     return True, error, conn
 
-def get_files_from_dir(file_or_dir):
+def get_files_from_root_dir(root_dir):
     from os import walk
     from os.path import abspath, dirname
     
     files_to_process = []
     
-    for (dirpath, dirnames, filenames) in walk(file_or_dir):
+    for (dirpath, dirnames, filenames) in walk(root_dir):
         for file_name in filenames:
             complete_path = abspath(dirpath) + '/'
             complete_path += file_name
             complete_path = complete_path.replace('//', '/')
-            files_to_process.append(complete_path)
+            files_to_process.append({'name': file_name, 'path': complete_path})
         
     return sorted(files_to_process)
     
-def download_files(file_or_dir):                    
+def download_files(files, download_folder):                    
     import boto
     s3 = boto.connect_s3()
+    filenames = [file['name'] for file in files]
+    newly_downloaded_files = []
     
-    print('Downloading files.')
-    
-    download_folder = file_or_dir['path']
-    
+    print('Downloading files to directory = {dir}.'\
+        .format(dir = download_folder))
+        
     bucket = s3.get_bucket(BUCKET_NAME)  
     for key in bucket.list():
-        if key.name.endswith('.mp3'):
-            complete_path = download_folder + '/' + key.name
-            complete_path = complete_path.replace('//', '/')
-            key.get_contents_to_filename(complete_path)
+        # If file is already downloaded, skip
+        if key:
+            if key.name in filenames:
+                continue
+            if key.name.endswith('.mp3'):
+                complete_path = download_folder + '/' + key.name
+                complete_path = complete_path.replace('//', '/')
+                key.get_contents_to_filename(complete_path)
+                newly_downloaded_files.append(
+                    {'name': key.name, 
+                     'path': complete_path}
+                 )
+    return newly_downloaded_files
     
-def upload_files(files, file_or_dir):                    
+def upload_files(files, upload_folder):                    
     import boto
     s3 = boto.connect_s3()
+    num_skipped = 0
     
-    print('Uploading files {files} in {dir}.'\
+    # Only upload files that are not already in the remote bucket
+    bucket = s3.get_bucket(BUCKET_NAME)  
+    for key in bucket.list():
+        if key and key.name:
+            for i in range(len(files)):
+                file = files[i]
+                if file['name'] == key.name:
+                    del files[i]
+                    num_skipped += 1
+                    break
+    
+    print('Uploading files {files} in {dir}. Number skipped: {skipped}.'\
             .format(files = str(files),
-                    dir = 'current directory' if file_or_dir['type'] == 'file'\
-                        else file_or_dir['path']))
+                    dir = upload_folder,
+                    skipped = num_skipped))
     
     for file in files:
         file_name = file[file.rindex('/') + 1:]
@@ -104,16 +118,17 @@ def upload_files(files, file_or_dir):
             key.set_contents_from_filename(file)
             key.set_acl('public-read')
 
-def parse_header_info(conn, files):
+def update_database(conn, files):
     import eyed3
     from eyed3.mp3 import isMp3File
     
     errors = []
 
     for file in files:
-        mp3_file = eyed3.load(file)
-        if not isMp3File(file):
-            errors.append('{file} is not an mp3 file.'.format(file = file))
+        if not isMp3File(file['path']):
+            errors.append('{fi} is not an mp3 file.'.format(fi = file['name']))
+            continue
+        mp3_file = eyed3.load(file['path'])
         tag = mp3_file.tag
         if tag:
             artist = mp3_file.tag.artist
@@ -123,11 +138,12 @@ def parse_header_info(conn, files):
             year = mp3_file.tag.release_date or mp3_file.tag.recording_date
             if genre:
                 genre = genre.name
-            insert_into_db(conn = conn, file = file, artist = artist, album = album, 
-                title = title, genre = genre, year = year)
+            insert_into_db(conn = conn, file = file['path'], artist = artist, 
+                album = album, title = title, genre = genre, year = year)
         else:
-            errors.append('No tag found for mp3 file {file}.'.format(file = file))
-            insert_into_db(conn = conn, file = file) # All values default to 'Unknown'
+            errors.append('No tag found for mp3 file {fi}.'.format(fi = file['name']))
+            # All values default to 'Unknown'
+            insert_into_db(conn = conn, file = file['path']) 
     if errors:
         return False, errors
 
