@@ -17,24 +17,22 @@
 #include <string>
 #include <list>
 #include <unordered_map>
-
-#include "ytfs_list.h"
+#include <unordered_set>
 
 using namespace std;
 
-static const string hello_str = "Hello World!\n";
-static const string hello_path = "/hello.mp3";
-
 static string CATEGORY_DIRS[NUM_CATEGORY] = {"/Album", "/Artist", "/Genre", "/Year"};
-static folder_list_t *album_folder_list = NULL;
-static folder_list_t *artist_folder_list = NULL;
-static folder_list_t *genre_folder_list = NULL;
-static folder_list_t *year_folder_list = NULL;
 static unordered_map<string, list<string>> album_mp3_map;
 static unordered_map<string, list<string>> artist_mp3_map;
 static unordered_map<string, list<string>> genre_mp3_map;
 static unordered_map<string, list<string>> year_mp3_map;
-static unordered_map<string, string> file_look_up_map; // Takes in title, returns absolute path to file
+// Takes in title, returns absolute path to file
+static unordered_map<string, string> file_look_up_map; 
+// Used for checking whether sub-category directory is valid
+static unordered_set<string> album_look_up_set;
+static unordered_set<string> artist_look_up_set;
+static unordered_set<string> genre_look_up_set;
+static unordered_set<string> year_look_up_set;
 
 static struct fuse_operations ytfs_oper;
 
@@ -49,7 +47,6 @@ int get_sub_directory_strlen(const string &path);
 int mp3_callback(void *data, int argc, char **argv, char **col_names);
 int category_callback(void *data, int argc, char **argv, char **col_names);
 int file_look_up_callback(void *data, int argc, char **argv, char **col_names);
-
 
 bool begins_with(const char *str, const char *pre) 
 {
@@ -81,48 +78,35 @@ bool is_category_directory(const string &path)
 
 bool is_sub_category_directory(const string &path) 
 {
-    bool begins_with_category_directory = false;
-    bool in_sub_category_list = true; // NEED TO FIX
-    bool ends_with_mp3 = false;
-    const string mp3 = ".mp3";
-
-    for (int i = 0; i < NUM_CATEGORY; i++) {
-        const string cat_dir = CATEGORY_DIRS[i];
-        if (path.substr(0, cat_dir.size()) == cat_dir) {
-            begins_with_category_directory = true;
-            break;
-        }
-    }
-
-    if (path.length() >= 4) {
-        ends_with_mp3 = path.compare(path.length() - mp3.length(), mp3.length(), mp3) == 0;
-    }
-
-    return in_sub_category_list && begins_with_category_directory
-        && !ends_with_mp3;
+    const int index = path.find_last_of("/") + 1;
+    const string dir_name_in_path = path.substr(index);
+    bool was_found = false;
+    
+    auto it = album_look_up_set.find(dir_name_in_path);
+    was_found = it != album_look_up_set.end();
+    if (was_found) return true;
+    
+    it = artist_look_up_set.find(dir_name_in_path);
+    was_found = it != artist_look_up_set.end();
+    if (was_found) return true;
+    
+    it = genre_look_up_set.find(dir_name_in_path);
+    was_found = it != genre_look_up_set.end();
+    if (was_found) return true;
+    
+    it = year_look_up_set.find(dir_name_in_path);
+    was_found = it != year_look_up_set.end();
+    if (was_found) return true;
+    
+    return false;
 }
 
 bool is_file(const string &path)
 {
-    bool begins_with_category_directory = false;
-    bool ends_with_mp3 = false;
-    const string mp3 = ".mp3";
-
-    for (int i = 0; i < NUM_CATEGORY; i++) {
-        const string cat_dir = CATEGORY_DIRS[i];
-        if (path.substr(0, cat_dir.size()) == cat_dir) {
-            begins_with_category_directory = true;
-            break;
-        }
-    }
-
-    if (path.length() >= 4) {
-        ends_with_mp3 = path.compare(path.length() - mp3.length(), mp3.length(), mp3) == 0;
-    }
-
-    // Treat paths like /sample.mp3 and /Album/sample.mp3 and /Album/<path>/sample.3
-    // valid file paths 
-    return (begins_with_category_directory && ends_with_mp3) || (ends_with_mp3);
+    const int index = path.find_last_of("/") + 1;
+    const string file_name_in_path = path.substr(index);
+    auto it = file_look_up_map.find(file_name_in_path);
+    return it != file_look_up_map.end();
 }
 
 list<string> get_list_by_path(const char *path, unordered_map<string, list<string>> map)
@@ -176,18 +160,20 @@ size_t get_file_size(const char *path)
 static int ytfs_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
+	const string cpp_path = string(path);
 
 	memset(stbuf, 0, sizeof(struct stat));
-	if (is_root_directory(path)) {
+	
+	if (is_root_directory(cpp_path)) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 4;
-	} else if (is_category_directory(path)) { 
+	} else if (is_category_directory(cpp_path)) { 
         stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 3;
-    } else if (is_sub_category_directory(path)) {
+    } else if (is_sub_category_directory(cpp_path)) {
         stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 2;
-    } else if (is_file(path)) {
+    } else if (is_file(cpp_path)) {
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
         stbuf->st_size = get_file_size(path);
@@ -220,19 +206,19 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     // Fill each category folder with specific folder names
     else if (is_category_directory(path)) {
-        folder_t *curr = NULL;
+        unordered_set<string> set;
         if (strcmp(path, "/Album") == 0) {
-            curr = album_folder_list->root;
+            set = album_look_up_set;
         } else if (strcmp(path, "/Artist") == 0) {
-            curr = artist_folder_list->root;
+            set = artist_look_up_set;
         } else if (strcmp(path, "/Genre") == 0) {
-            curr = genre_folder_list->root;
+            set = genre_look_up_set;
         } else if (strcmp(path, "/Year") == 0) {
-            curr = year_folder_list->root;
+            set = year_look_up_set;
         }
-        while (curr != NULL) { 
-            filler(buf, curr->name->c_str(), NULL, 0); // DO NOT ADD ONE to curr->name
-            curr = curr->next;
+
+        for (auto it = set.cbegin(); it != set.cend(); ++it) {
+            filler(buf, (*it).c_str(), NULL, 0);
         }
     }
 
@@ -295,7 +281,6 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 {
     int fd;
     int res;
-	unsigned int len;
 	(void) fi;
 
 	if (!is_file(path))
@@ -418,16 +403,16 @@ void init_db(void)
 int category_callback(void *data, int argc, char **argv, char **col_names) {
     for (int i = 0; i < argc; i++) {
         if (strcmp(col_names[i], "album") == 0) {
-            insert_node(album_folder_list, argv[i], "/Album/");
+            album_look_up_set.insert(argv[i]);
         }
         if (strcmp(col_names[i], "artist") == 0) {
-            insert_node(artist_folder_list, argv[i], "/Artist/");
+            artist_look_up_set.insert(argv[i]);
         }
         if (strcmp(col_names[i], "genre") == 0) {
-            insert_node(genre_folder_list, argv[i], "/Genre/");
+            genre_look_up_set.insert(argv[i]);
         }
         if (strcmp(col_names[i], "year") == 0) {
-            insert_node(year_folder_list, argv[i], "/Year/");
+            year_look_up_set.insert(argv[i]);
         }
     }
     return 0;
@@ -505,14 +490,8 @@ int main(int argc, char *argv[])
 	ytfs_oper.read = ytfs_read;
     ytfs_oper.readdir = ytfs_readdir; 
 
-    album_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
-    artist_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
-    genre_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));    
-    year_folder_list = (folder_list_t *) malloc(sizeof(folder_list_t));  
-
     init_db();
 
-   
     for (auto kv : file_look_up_map) {
         cout << kv.first << " " << kv.second << endl;
     }

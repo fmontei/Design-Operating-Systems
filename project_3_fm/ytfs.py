@@ -221,7 +221,9 @@ def search_apple_api(filename):
     
     base_url = 'https://itunes.apple.com/search?term='
     filename = filename.replace('.mp3', '').replace('_', '+')
-    query = re.sub('[^A-Za-z0-9+]+', '', filename)
+    filename = re.sub('\(.+\)', '', filename) # Remove anything inside parantheses
+    query = re.sub('[^A-Za-z0-9+]+', '', filename) # Remove special characters
+    print filename
 
     req = requests.get(base_url + query + '&limit=1')
     if req and req.status_code == 200:
