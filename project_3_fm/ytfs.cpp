@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <cstdlib>
 #include <unistd.h>
+#include <dirent.h>
 
 #include <iostream>
 #include <string>
@@ -101,6 +102,41 @@ bool is_sub_category_directory(const string &path)
     return false;
 }
 
+void rmdir_sub_category_directory(const string &path) 
+{
+    const int index = path.find_last_of("/") + 1;
+    const string dir_name_in_path = path.substr(index);
+    bool was_found = false;
+    
+    auto it = album_look_up_set.find(dir_name_in_path);
+    was_found = it != album_look_up_set.end();
+    if (was_found) {
+        album_look_up_set.erase(it);
+        return;
+    }
+    
+    it = artist_look_up_set.find(dir_name_in_path);
+    was_found = it != artist_look_up_set.end();
+    if (was_found) {
+        artist_look_up_set.erase(it);
+        return;
+    }
+    
+    it = genre_look_up_set.find(dir_name_in_path);
+    was_found = it != genre_look_up_set.end();
+    if (was_found) {
+        genre_look_up_set.erase(it);
+        return;
+    }
+    
+    it = year_look_up_set.find(dir_name_in_path);
+    was_found = it != year_look_up_set.end();
+    if (was_found) {
+        year_look_up_set.erase(it);
+        return;
+    }
+}
+
 bool is_file(const string &path)
 {
     const int index = path.find_last_of("/") + 1;
@@ -177,11 +213,23 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
         stbuf->st_size = get_file_size(path);
-    } else {
-		res = -ENOENT;
     }
 
 	return res;
+}
+
+static int ytfs_opendir(const char *path, struct fuse_file_info *fi)
+{
+    int res = 0;
+    const string cpp_path = string(path);
+    
+    if (!is_root_directory(cpp_path) &&
+        !is_category_directory(cpp_path) &&
+        !is_sub_category_directory(cpp_path)) {
+        res = -ENOTDIR;
+	}
+    
+    return res;
 }
 
 static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
@@ -298,6 +346,57 @@ static int ytfs_read(const char *path, char *buf, size_t size, off_t offset,
 
     close(fd);
 	return res;
+}
+
+static int ytfs_mkdir(const char *path, mode_t mode)
+{
+    int res = 0;
+    const string cpp_path = string(path);
+    
+    if (is_category_directory(cpp_path)) {
+        res = -EPERM; // Operation not allowed
+    } else if (is_sub_category_directory(cpp_path)) {
+        res = mkdir(path, mode);
+        if (res == -1) {
+            res = -ENOENT;
+        } else {
+            const string dir_name = cpp_path.substr(0, cpp_path.find("/"));
+            
+            if (cpp_path.find("Album") != string::npos) {
+                album_look_up_set.insert(dir_name);
+            } else if (cpp_path.find("Artist") != string::npos) {
+                artist_look_up_set.insert(dir_name);
+            } else if (cpp_path.find("Genre") != string::npos) {
+                genre_look_up_set.insert(dir_name);
+            } else if (cpp_path.find("Year") != string::npos) {
+                year_look_up_set.insert(dir_name);
+            }
+        } 
+    }
+        
+    return res;
+   
+}
+
+static int ytfs_rmdir(const char *path)
+{
+    int res = 0;
+    const string cpp_path = string(path);
+    
+    if (is_category_directory(cpp_path)) {
+        res = -EPERM; // Operation not allowed
+    } else if (is_sub_category_directory(cpp_path)) {
+        res = rmdir(path);
+        if (res == -1) {
+            res = -ENOTDIR;
+        } else {
+            rmdir_sub_category_directory(cpp_path);
+        }
+    } else {
+        res = -ENOENT;
+    }
+    
+    return res;
 }
 
 void init_db(void) 
@@ -491,7 +590,10 @@ int main(int argc, char *argv[])
     ytfs_oper.getattr = ytfs_getattr;	
 	ytfs_oper.open = ytfs_open;
 	ytfs_oper.read = ytfs_read;
+	ytfs_oper.opendir = ytfs_opendir;
     ytfs_oper.readdir = ytfs_readdir; 
+    ytfs_oper.mkdir = ytfs_mkdir;
+    ytfs_oper.rmdir = ytfs_rmdir;
 
     init_db();
 
