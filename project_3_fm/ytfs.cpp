@@ -213,6 +213,11 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
         stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
         stbuf->st_size = get_file_size(path);
+    } else {
+        res = lstat(path, stbuf);
+        if (res == -1) {
+            res = -errno;
+        }
     }
 
 	return res;
@@ -352,50 +357,71 @@ static int ytfs_mkdir(const char *path, mode_t mode)
 {
     int res = 0;
     const string cpp_path = string(path);
+    const string base_path = cpp_path.substr(0, cpp_path.find_last_of("/"));
+    const string dir_to_make = cpp_path.substr(cpp_path.find_last_of("/") + 1);
     
-    if (is_category_directory(cpp_path)) {
+    if (!is_category_directory(base_path)) {
         res = -EPERM; // Operation not allowed
-    } else if (is_sub_category_directory(cpp_path)) {
-        res = mkdir(path, mode);
-        if (res == -1) {
-            res = -ENOENT;
-        } else {
-            const string dir_name = cpp_path.substr(0, cpp_path.find("/"));
-            
-            if (cpp_path.find("Album") != string::npos) {
-                album_look_up_set.insert(dir_name);
-            } else if (cpp_path.find("Artist") != string::npos) {
-                artist_look_up_set.insert(dir_name);
-            } else if (cpp_path.find("Genre") != string::npos) {
-                genre_look_up_set.insert(dir_name);
-            } else if (cpp_path.find("Year") != string::npos) {
-                year_look_up_set.insert(dir_name);
-            }
-        } 
+    } else {
+        const list<string> mp3_list;
+        
+        if (cpp_path.find("Album") != string::npos) {
+            album_look_up_set.insert(dir_to_make);
+            album_mp3_map[cpp_path] = mp3_list;
+        } else if (cpp_path.find("Artist") != string::npos) {
+            artist_look_up_set.insert(dir_to_make);
+            artist_mp3_map[cpp_path] = mp3_list;
+        } else if (cpp_path.find("Genre") != string::npos) {
+            genre_look_up_set.insert(dir_to_make);
+            genre_mp3_map[cpp_path] = mp3_list;
+        } else if (cpp_path.find("Year") != string::npos) {
+            year_look_up_set.insert(dir_to_make);
+            year_mp3_map[cpp_path] = mp3_list;
+        }
     }
         
     return res;
-   
 }
 
 static int ytfs_rmdir(const char *path)
 {
     int res = 0;
     const string cpp_path = string(path);
+    const string base_path = cpp_path.substr(0, cpp_path.find_last_of("/"));
+    const string dir_to_remove = cpp_path.substr(cpp_path.find_last_of("/") + 1);
     
-    if (is_category_directory(cpp_path)) {
+    if (!is_category_directory(base_path)) {
         res = -EPERM; // Operation not allowed
-    } else if (is_sub_category_directory(cpp_path)) {
-        res = rmdir(path);
-        if (res == -1) {
-            res = -ENOTDIR;
-        } else {
-            rmdir_sub_category_directory(cpp_path);
-        }
     } else {
-        res = -ENOENT;
+        const string dir_name = cpp_path.substr(0, cpp_path.find("/"));
+        
+        if (cpp_path.find("Album") != string::npos) {
+            if (!album_mp3_map[cpp_path].size() == 0) {
+                return -ENOTEMPTY;
+            }
+            album_look_up_set.erase(dir_to_remove);
+            album_mp3_map.erase(cpp_path);
+        } else if (cpp_path.find("Artist") != string::npos) {
+            if (!artist_mp3_map[cpp_path].size() == 0) {
+                return -ENOTEMPTY;
+            }
+            artist_look_up_set.erase(dir_to_remove);
+            artist_mp3_map.erase(cpp_path);
+        } else if (cpp_path.find("Genre") != string::npos) {
+            if (!genre_mp3_map[cpp_path].size() == 0) {
+                return -ENOTEMPTY;
+            }
+            genre_look_up_set.erase(dir_to_remove);
+            genre_mp3_map.erase(cpp_path);
+        } else if (cpp_path.find("Year") != string::npos) {
+            if (!year_mp3_map[cpp_path].size() == 0) {
+                return -ENOTEMPTY;
+            }
+            year_look_up_set.erase(dir_to_remove);
+            year_mp3_map.erase(cpp_path);
+        }
     }
-    
+        
     return res;
 }
 
