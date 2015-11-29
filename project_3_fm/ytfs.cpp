@@ -30,10 +30,10 @@ static unordered_map<string, list<string>> year_mp3_map;
 // Takes in title, returns absolute path to file
 static unordered_map<string, string> file_look_up_map; 
 // Used for checking whether sub-category directory is valid
-static unordered_set<string> album_look_up_set;
-static unordered_set<string> artist_look_up_set;
-static unordered_set<string> genre_look_up_set;
-static unordered_set<string> year_look_up_set;
+static unordered_set<string> album_dir_look_up_set;
+static unordered_set<string> artist_dir_look_up_set;
+static unordered_set<string> genre_dir_look_up_set;
+static unordered_set<string> year_dir_look_up_set;
 
 static struct fuse_operations ytfs_oper;
 
@@ -83,20 +83,20 @@ bool is_sub_category_directory(const string &path)
     const string dir_name_in_path = path.substr(index);
     bool was_found = false;
     
-    auto it = album_look_up_set.find(dir_name_in_path);
-    was_found = it != album_look_up_set.end();
+    auto it = album_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != album_dir_look_up_set.end();
     if (was_found) return true;
     
-    it = artist_look_up_set.find(dir_name_in_path);
-    was_found = it != artist_look_up_set.end();
+    it = artist_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != artist_dir_look_up_set.end();
     if (was_found) return true;
     
-    it = genre_look_up_set.find(dir_name_in_path);
-    was_found = it != genre_look_up_set.end();
+    it = genre_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != genre_dir_look_up_set.end();
     if (was_found) return true;
     
-    it = year_look_up_set.find(dir_name_in_path);
-    was_found = it != year_look_up_set.end();
+    it = year_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != year_dir_look_up_set.end();
     if (was_found) return true;
     
     return false;
@@ -108,31 +108,31 @@ void rmdir_sub_category_directory(const string &path)
     const string dir_name_in_path = path.substr(index);
     bool was_found = false;
     
-    auto it = album_look_up_set.find(dir_name_in_path);
-    was_found = it != album_look_up_set.end();
+    auto it = album_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != album_dir_look_up_set.end();
     if (was_found) {
-        album_look_up_set.erase(it);
+        album_dir_look_up_set.erase(it);
         return;
     }
     
-    it = artist_look_up_set.find(dir_name_in_path);
-    was_found = it != artist_look_up_set.end();
+    it = artist_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != artist_dir_look_up_set.end();
     if (was_found) {
-        artist_look_up_set.erase(it);
+        artist_dir_look_up_set.erase(it);
         return;
     }
     
-    it = genre_look_up_set.find(dir_name_in_path);
-    was_found = it != genre_look_up_set.end();
+    it = genre_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != genre_dir_look_up_set.end();
     if (was_found) {
-        genre_look_up_set.erase(it);
+        genre_dir_look_up_set.erase(it);
         return;
     }
     
-    it = year_look_up_set.find(dir_name_in_path);
-    was_found = it != year_look_up_set.end();
+    it = year_dir_look_up_set.find(dir_name_in_path);
+    was_found = it != year_dir_look_up_set.end();
     if (was_found) {
-        year_look_up_set.erase(it);
+        year_dir_look_up_set.erase(it);
         return;
     }
 }
@@ -223,15 +223,23 @@ static int ytfs_getattr(const char *path, struct stat *stbuf)
 	return res;
 }
 
+static int ytfs_access(const char *path, int mask)
+{
+    int res = 0;
+    
+    if (!is_directory(path)) {
+		res = -EACCES;
+	}
+    
+    return res;
+}
+
 static int ytfs_opendir(const char *path, struct fuse_file_info *fi)
 {
     int res = 0;
-    const string cpp_path = string(path);
     
-    if (!is_root_directory(cpp_path) &&
-        !is_category_directory(cpp_path) &&
-        !is_sub_category_directory(cpp_path)) {
-        res = -ENOTDIR;
+    if (!is_directory(path)) {
+		res = -ENOTDIR;
 	}
     
     return res;
@@ -244,8 +252,9 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	(void) fi;
 
     // Since we're reading directories, reject all non-directories
-	if (!is_directory(path))
-		return -ENOENT;
+	if (!is_directory(path)) {
+		return -ENOTDIR;
+	}
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
@@ -261,13 +270,13 @@ static int ytfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     else if (is_category_directory(path)) {
         unordered_set<string> set;
         if (strcmp(path, "/Album") == 0) {
-            set = album_look_up_set;
+            set = album_dir_look_up_set;
         } else if (strcmp(path, "/Artist") == 0) {
-            set = artist_look_up_set;
+            set = artist_dir_look_up_set;
         } else if (strcmp(path, "/Genre") == 0) {
-            set = genre_look_up_set;
+            set = genre_dir_look_up_set;
         } else if (strcmp(path, "/Year") == 0) {
-            set = year_look_up_set;
+            set = year_dir_look_up_set;
         }
 
         for (auto it = set.cbegin(); it != set.cend(); ++it) {
@@ -366,16 +375,16 @@ static int ytfs_mkdir(const char *path, mode_t mode)
         const list<string> mp3_list;
         
         if (cpp_path.find("Album") != string::npos) {
-            album_look_up_set.insert(dir_to_make);
+            album_dir_look_up_set.insert(dir_to_make);
             album_mp3_map[cpp_path] = mp3_list;
         } else if (cpp_path.find("Artist") != string::npos) {
-            artist_look_up_set.insert(dir_to_make);
+            artist_dir_look_up_set.insert(dir_to_make);
             artist_mp3_map[cpp_path] = mp3_list;
         } else if (cpp_path.find("Genre") != string::npos) {
-            genre_look_up_set.insert(dir_to_make);
+            genre_dir_look_up_set.insert(dir_to_make);
             genre_mp3_map[cpp_path] = mp3_list;
         } else if (cpp_path.find("Year") != string::npos) {
-            year_look_up_set.insert(dir_to_make);
+            year_dir_look_up_set.insert(dir_to_make);
             year_mp3_map[cpp_path] = mp3_list;
         }
     }
@@ -393,36 +402,113 @@ static int ytfs_rmdir(const char *path)
     if (!is_category_directory(base_path)) {
         res = -EPERM; // Operation not allowed
     } else {
-        const string dir_name = cpp_path.substr(0, cpp_path.find("/"));
-        
         if (cpp_path.find("Album") != string::npos) {
             if (!album_mp3_map[cpp_path].size() == 0) {
                 return -ENOTEMPTY;
             }
-            album_look_up_set.erase(dir_to_remove);
+            album_dir_look_up_set.erase(dir_to_remove);
             album_mp3_map.erase(cpp_path);
         } else if (cpp_path.find("Artist") != string::npos) {
             if (!artist_mp3_map[cpp_path].size() == 0) {
                 return -ENOTEMPTY;
             }
-            artist_look_up_set.erase(dir_to_remove);
+            artist_dir_look_up_set.erase(dir_to_remove);
             artist_mp3_map.erase(cpp_path);
         } else if (cpp_path.find("Genre") != string::npos) {
             if (!genre_mp3_map[cpp_path].size() == 0) {
                 return -ENOTEMPTY;
             }
-            genre_look_up_set.erase(dir_to_remove);
+            genre_dir_look_up_set.erase(dir_to_remove);
             genre_mp3_map.erase(cpp_path);
         } else if (cpp_path.find("Year") != string::npos) {
             if (!year_mp3_map[cpp_path].size() == 0) {
                 return -ENOTEMPTY;
             }
-            year_look_up_set.erase(dir_to_remove);
+            year_dir_look_up_set.erase(dir_to_remove);
             year_mp3_map.erase(cpp_path);
         }
     }
         
     return res;
+}
+
+static int ytfs_rename(const char *from, const char *to)
+{
+	int res = 0;
+	const string from_path = string(from);
+	const string to_path = string(to);
+	
+	if (is_sub_category_directory(from) && 
+		is_sub_category_directory(to) &&
+		to_path.find("/") == string::npos) {	
+		const string name_to_erase = from_path.substr(from_path.find_last_of("/") + 1);
+		const string name_to_insert = to_path.substr(to_path.find_last_of("/") + 1);
+		
+		if (from_path.find("Album") != string::npos) {
+			album_dir_look_up_set.insert(name_to_insert);
+			album_dir_look_up_set.erase(name_to_erase);
+			
+			list<string> current_mp3_list = album_mp3_map.find(from_path)->second;
+			album_mp3_map[to_path] = current_mp3_list;
+			album_mp3_map.erase(from_path);
+		} else if (from_path.find("Artist") != string::npos) {
+			artist_dir_look_up_set.insert(name_to_insert);
+			artist_dir_look_up_set.erase(name_to_erase);
+			
+			list<string> current_mp3_list = artist_mp3_map.find(from_path)->second;
+			artist_mp3_map[to_path] = current_mp3_list;
+			artist_mp3_map.erase(from_path);
+		} else if (from_path.find("Genre") != string::npos) {
+			genre_dir_look_up_set.insert(name_to_insert);
+			genre_dir_look_up_set.erase(name_to_erase);
+			
+			list<string> current_mp3_list = genre_mp3_map.find(from_path)->second;
+			genre_mp3_map[to_path] = current_mp3_list;
+			genre_mp3_map.erase(from_path);
+		} else if (from_path.find("Year") != string::npos) {
+			year_dir_look_up_set.insert(name_to_insert);
+			year_dir_look_up_set.erase(name_to_erase);
+			
+			list<string> current_mp3_list = year_mp3_map.find(from_path)->second;
+			year_mp3_map[to_path] = current_mp3_list;
+			year_mp3_map.erase(from_path);
+		}
+	} else if (is_file(from) && is_file(to)) {
+		const string dir_from_path = from_path.substr(0, from_path.find_last_of("/"));
+		const string name_to_erase = from_path.substr(from_path.find_last_of("/") + 1);
+		const string name_to_insert = to_path.substr(to_path.find_last_of("/") + 1);
+		
+		if (from_path.find("Album") != string::npos) {
+			list<string> current_mp3_list = album_mp3_map.find(dir_from_path)->second;
+			current_mp3_list.push_back(name_to_insert);
+			current_mp3_list.remove(name_to_erase);
+			album_mp3_map[dir_from_path] = current_mp3_list;
+		} else if (from_path.find("Album") != string::npos) {
+			list<string> current_mp3_list = artist_mp3_map.find(dir_from_path)->second;
+			current_mp3_list.push_back(name_to_insert);
+			current_mp3_list.remove(name_to_erase);
+			artist_mp3_map[dir_from_path] = current_mp3_list;
+		} else if (from_path.find("Album") != string::npos) {
+			list<string> current_mp3_list = genre_mp3_map.find(dir_from_path)->second;
+			current_mp3_list.push_back(name_to_insert);
+			current_mp3_list.remove(name_to_erase);
+			genre_mp3_map[dir_from_path] = current_mp3_list;
+		} else if (from_path.find("Album") != string::npos) {
+			list<string> current_mp3_list = year_mp3_map.find(dir_from_path)->second;
+			current_mp3_list.push_back(name_to_insert);
+			current_mp3_list.remove(name_to_erase);
+			year_mp3_map[dir_from_path] = current_mp3_list;
+		}
+		
+		// Update file_look_up_map so the reference to the original song is maintained
+		auto map_pos = file_look_up_map.find(name_to_erase);
+		file_look_up_map[name_to_insert] = map_pos->second;
+		file_look_up_map.erase(map_pos); 
+	} else {
+		res = -EPERM;
+	}
+	
+	return res;
 }
 
 void init_db(void) 
@@ -439,7 +525,7 @@ void init_db(void)
         exit(1);
     }
 
-    // Query to populate album_look_up_set
+    // Query to populate album_dir_look_up_set
     query = string("SELECT DISTINCT album from mp3 ORDER BY album ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -449,7 +535,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    // Query to populate artist_look_up_set
+    // Query to populate artist_dir_look_up_set
     query = string("SELECT DISTINCT artist from mp3 ORDER BY artist ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -459,7 +545,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    // Query to populate genre_look_up_set
+    // Query to populate genre_dir_look_up_set
     query = string("SELECT DISTINCT genre from mp3 ORDER BY genre ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -469,7 +555,7 @@ void init_db(void)
         fprintf(stdout, "Operation done successfully\n");
     }
 
-    // Query to populate year_look_up_set
+    // Query to populate year_dir_look_up_set
     query = string("SELECT DISTINCT year from mp3 ORDER BY year ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
@@ -531,16 +617,16 @@ void init_db(void)
 int category_callback(void *data, int argc, char **argv, char **col_names) {
     for (int i = 0; i < argc; i++) {
         if (strcmp(col_names[i], "album") == 0) {
-            album_look_up_set.insert(argv[i]);
+            album_dir_look_up_set.insert(argv[i]);
         }
         if (strcmp(col_names[i], "artist") == 0) {
-            artist_look_up_set.insert(argv[i]);
+            artist_dir_look_up_set.insert(argv[i]);
         }
         if (strcmp(col_names[i], "genre") == 0) {
-            genre_look_up_set.insert(argv[i]);
+            genre_dir_look_up_set.insert(argv[i]);
         }
         if (strcmp(col_names[i], "year") == 0) {
-            year_look_up_set.insert(argv[i]);
+            year_dir_look_up_set.insert(argv[i]);
         }
     }
     return 0;
@@ -616,10 +702,12 @@ int main(int argc, char *argv[])
     ytfs_oper.getattr = ytfs_getattr;	
 	ytfs_oper.open = ytfs_open;
 	ytfs_oper.read = ytfs_read;
+	ytfs_oper.access = ytfs_access;
 	ytfs_oper.opendir = ytfs_opendir;
     ytfs_oper.readdir = ytfs_readdir; 
     ytfs_oper.mkdir = ytfs_mkdir;
     ytfs_oper.rmdir = ytfs_rmdir;
+    ytfs_oper.rename = ytfs_rename;
 
     init_db();
 
