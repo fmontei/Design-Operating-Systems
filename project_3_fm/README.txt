@@ -4,6 +4,8 @@
 “mkdir music” in the same directory as ytfs.py).
 2) Configure the environment variables in ytfs.env. Examples have been provided for you.
 3) Execute:
+    a) ./run.sh
+    OR:
     a) make clean all
     b) source ytfs.env 
     c) python ytfs.py 
