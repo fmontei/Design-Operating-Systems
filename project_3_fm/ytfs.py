@@ -204,7 +204,8 @@ def insert_into_db(conn, file, title = UNKNOWN, artist = UNKNOWN,
     if title == UNKNOWN:
         title = file['name']
     else:
-        title = title.encode('utf-8') + '.mp3'
+        title = title + '.mp3'
+    title = title.encode('utf-8')
     artist = artist.encode('utf-8')
     album = album.encode('utf-8')
     genre = genre.encode('utf-8')
