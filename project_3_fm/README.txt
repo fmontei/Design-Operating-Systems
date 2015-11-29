@@ -1,21 +1,26 @@
 === USAGE ===
-1) source ytfs.env 
-2) python ytfs.py
-3) make clean all
-4) ./ytfs <mount_directory>
+1) Configure the directories in ytfs.env and make sure all the directories exist on disk 
+(For example, the original root directory is music/, make sure you execute 
+“mkdir music” in the same directory as ytfs.py).
+2) Configure the environment variables in ytfs.env. Examples have been provided for you.
+3) Execute:
+    a) make clean all
+    b) source ytfs.env 
+    c) python ytfs.py 
+    OPTIONAL if c) automatically fails to execute C routine: ./ytfs <mount_directory>
 
-This will be streamlined soon into one Python call later
+=== SYSTEM SETUP ===
+1) Place boto.cfg in /etc/boto.cfg
 
 === PYTHON SETUP ===
-1) install pip: http://pip.readthedocs.org/en/stable/installing/
-2a) run: sudo pip install -U boto
-2b) run: sudo pip install -U eyed3
-2c) run: sudo pip install -U requests
-3) Place boto.cfg in /etc/boto.cfg
+1) Install pip: http://pip.readthedocs.org/en/stable/installing/
+2) Execute:
+    a) sudo pip install -U boto
+    b) sudo pip install -U eyed3
+    c) sudo pip install -U requests
 
 === C++ SETUP ===
 1) Install FUSE for C
     link: http://wiki.vpslink.com/HOWTO:_Install_and_mount_FUSE_filesystems
 2) Install sqlite3 for C
     link: http://www.tutorialspoint.com/sqlite/sqlite_installation.htm
-

@@ -328,7 +328,7 @@ static int ytfs_open(const char *path, struct fuse_file_info *fi)
 		return -EACCES;
 
     string absolute_file_path = get_absolute_file_path(path);
-    int res = open(absolute_file_path.c_str(), fi->flags);
+    const int res = open(absolute_file_path.c_str(), fi->flags);
     if (res == -1) {
         return -ENOENT;
     }
@@ -571,86 +571,86 @@ void init_db(void)
     query = string("SELECT DISTINCT album from mp3 ORDER BY album ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     // Query to populate artist_dir_look_up_set
     query = string("SELECT DISTINCT artist from mp3 ORDER BY artist ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     // Query to populate genre_dir_look_up_set
     query = string("SELECT DISTINCT genre from mp3 ORDER BY genre ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     // Query to populate year_dir_look_up_set
     query = string("SELECT DISTINCT year from mp3 ORDER BY year ASC;");
     rc = sqlite3_exec(db, query.c_str(), category_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     query = string("SELECT DISTINCT title, album from mp3 ORDER BY album, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     query = string("SELECT DISTINCT title, artist from mp3 ORDER BY artist, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     query = string("SELECT DISTINCT title, genre from mp3 ORDER BY genre, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     query = string("SELECT DISTINCT title, year from mp3 ORDER BY year, file ASC;");
     rc = sqlite3_exec(db, query.c_str(), mp3_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     // Query to populate file_look_up_map
     query = string("SELECT DISTINCT file, title from mp3;");
     rc = sqlite3_exec(db, query.c_str(), file_look_up_callback, (void*)data, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "%s: SQL error: %s\n", query.c_str(), err_msg);
         sqlite3_free(err_msg);
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stdout, "%s: Successful.\n", query.c_str());
     }
 
     sqlite3_close(db);
@@ -753,6 +753,7 @@ int main(int argc, char *argv[])
 
     init_db();
 
+	printf("Calling fuse_main()...\n");
     return fuse_main(argc, argv, &ytfs_oper, NULL);
 }
 

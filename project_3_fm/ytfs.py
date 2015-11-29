@@ -2,12 +2,13 @@ from optparse import OptionParser
 from os.path import isfile, isdir
 import eyed3
 from eyed3.mp3 import isMp3File
-from os import walk
+from os import walk, mkdir
 from os.path import abspath, dirname
 
 BUCKET_NAME = 'ytfs-felipe-yaling-garrett'
 DB_NAME = 'ytfs.db'
 TABLE_NAME = 'mp3'
+UNKNOWN = 'Unknown'
 
 def run(root_dir,
         mount_dir,
@@ -149,6 +150,11 @@ def upload_files(files, upload_folder):
 
 def update_database(conn, files):
     errors = []
+    title = UNKNOWN 
+    album = UNKNOWN 
+    artist = UNKNOWN 
+    genre = UNKNOWN 
+    year = UNKNOWN 
 
     for file in files:
         if not isMp3File(file['path']):
@@ -164,26 +170,38 @@ def update_database(conn, files):
             year = mp3_file.tag.release_date or mp3_file.tag.recording_date
             if genre:
                 genre = genre.name
+                					
             insert_into_db(conn = conn, file = file, artist = artist, 
                 album = album, title = title, genre = genre, year = year)
         else:
-            errors.append('No tag found for mp3 file {fi}.'.format(fi = file['name']))
-            # All values default to 'Unknown'
-            insert_into_db(conn = conn, file = file) 
-    if errors:
-        return False, errors
+			unknown_attrs = [title, artist, album, genre, year]
+			
+			for attr in unknown_attrs:
+				if attr and str(attr) == UNKNOWN:
+					title, album, artist, genre, year = search_apple_api(file['name'])
+					unknown_attrs = [title, artist, album, genre, year]
+					break
+			
+			if unknown_attrs[0] and str(unknown_attrs[0]) != UNKNOWN:
+				errors.append('No tag found for mp3 file {fi}. '\
+					'Successfully found tag info using Apple API.'.\
+					format(fi = file['name']))
+				insert_into_db(conn = conn, file = file, artist = artist, 
+					album = album, title = title, genre = genre, year = year)
+			else:
+				errors.append('No tag found for mp3 file {fi}.'\
+					.format(fi = file['name']))
+				# All values default to UNKNOWN
+				insert_into_db(conn = conn, file = file) 
 
-    return True, ''
+    return True, errors
 
-def insert_into_db(conn, file, title = 'Unknown', artist = 'Unknown', 
-    album = 'Unknown', genre = 'Unknown', year = 'Unknown'):
+def insert_into_db(conn, file, title = UNKNOWN, artist = UNKNOWN, 
+    album = UNKNOWN, genre = UNKNOWN, year = UNKNOWN):
     import sqlite3
     conn = sqlite3.connect(DB_NAME)
-    
-    if title == 'Unknown':
-        title, album, artist, genre, year = search_apple_api(file['name'])
 
-    if title == 'Unknown':
+    if title == UNKNOWN:
         title = file['name']
     else:
         title = title.encode('utf-8') + '.mp3'
@@ -242,11 +260,11 @@ def search_apple_api(filename):
             except:
                 pass
     
-    album = album if album else 'Unknown'
-    artist = artist if artist else 'Unknown'
-    genre = genre if genre else 'Unknown'
-    title = title if title else 'Unknown'
-    year = year if year else 'Unknown'
+    album = album if album else UNKNOWN
+    artist = artist if artist else UNKNOWN
+    genre = genre if genre else UNKNOWN
+    title = title if title else UNKNOWN
+    year = year if year else UNKNOWN
     
     return title, album, artist, genre, year
     
@@ -268,11 +286,11 @@ if __name__ == '__main__':
     search_flg = search_flg.strip().lower() if search_flg is not None else search_flg
     
     params = [{'param': 'YTFS_ROOT_DIR', 'is_valid': root_dir is not None \
-                and isdir(root_dir)},
+                and isdir(root_dir), 'target': root_dir},
               {'param': 'YTFS_MOUNT_DIR', 'is_valid': mount_dir is not None \
-                and isdir(mount_dir)},
+                and isdir(mount_dir), 'target': mount_dir},
               {'param': 'YTFS_SEARCH_DIR', 'is_valid': search_dir is not None \
-                and isdir(search_dir)},
+                and isdir(search_dir), 'target': search_dir},
               {'param': 'YTFS_DOWNLOAD_FLG', 'is_valid': download_flg is not None \
                 and download_flg in ['true', 't', '1', 'false', 'f', '0']},
               {'param': 'YTFS_UPLOAD_FLG', 'is_valid': upload_flg is not None \
@@ -281,10 +299,17 @@ if __name__ == '__main__':
                 and search_flg in ['true', 't', '1', 'false', 'f', '0']}]
 
     for param in params:
-        if not param['is_valid']:
-            raise Exception('{param} is undefined/invalid. Please define {param} in '\
-                'an .env file. Then type source <.env file> from the command '\
-                'line before running this script.'.format(param = param['param']))
+		if not param['is_valid']:
+			# Attempt to automatically create directory
+			try:
+				if param['target']:
+					print 'Trying to automatically create directory {dir}...'.\
+						format(dir = param['param'])
+					mkdir(param['target'])
+			except OSError as e:
+				raise Exception('{e}.\n{param} is undefined/invalid. Please define {param} in '\
+					'an .env file. Then type source <.env file> from the command '\
+					'line before running this script.'.format(e = e, param = param['param']))
 
     if download_flg in ['true', 't', '1']:
         download_flg = True
@@ -324,4 +349,7 @@ if __name__ == '__main__':
         import pprint
         pprint.pprint(errors)
         
-
+	from subprocess import call
+	print 'Attempting to execute C program automatically...'
+	call(['./ytfs', mount_dir])
+        
