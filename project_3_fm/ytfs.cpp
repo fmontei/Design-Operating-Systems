@@ -400,7 +400,7 @@ static int ytfs_rmdir(const char *path)
     const string dir_to_remove = cpp_path.substr(cpp_path.find_last_of("/") + 1);
     
     if (!is_category_directory(base_path)) {
-        res = -EPERM; // Operation not allowed
+        return -EPERM; // Operation not allowed
     } else {
         if (cpp_path.find("Album") != string::npos) {
             if (!album_mp3_map[cpp_path].size() == 0) {
@@ -483,17 +483,17 @@ static int ytfs_rename(const char *from, const char *to)
 			current_mp3_list.push_back(name_to_insert);
 			current_mp3_list.remove(name_to_erase);
 			album_mp3_map[dir_from_path] = current_mp3_list;
-		} else if (from_path.find("Album") != string::npos) {
+		} else if (from_path.find("Artist") != string::npos) {
 			list<string> current_mp3_list = artist_mp3_map.find(dir_from_path)->second;
 			current_mp3_list.push_back(name_to_insert);
 			current_mp3_list.remove(name_to_erase);
 			artist_mp3_map[dir_from_path] = current_mp3_list;
-		} else if (from_path.find("Album") != string::npos) {
+		} else if (from_path.find("Genre") != string::npos) {
 			list<string> current_mp3_list = genre_mp3_map.find(dir_from_path)->second;
 			current_mp3_list.push_back(name_to_insert);
 			current_mp3_list.remove(name_to_erase);
 			genre_mp3_map[dir_from_path] = current_mp3_list;
-		} else if (from_path.find("Album") != string::npos) {
+		} else if (from_path.find("Year") != string::npos) {
 			list<string> current_mp3_list = year_mp3_map.find(dir_from_path)->second;
 			current_mp3_list.push_back(name_to_insert);
 			current_mp3_list.remove(name_to_erase);
