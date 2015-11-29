@@ -2,8 +2,7 @@
 1) Configure the directories in ytfs.env and make sure all the directories exist on disk 
 (For example, the original root directory is music/, make sure you execute 
 “mkdir music” in the same directory as ytfs.py).
-2) Configure the environment variables in ytfs.env. Examples have been provided for you.
-3) Execute:
+2) Execute:
     a) ./run.sh
     OR:
     a) make clean all
@@ -26,3 +25,6 @@
     link: http://wiki.vpslink.com/HOWTO:_Install_and_mount_FUSE_filesystems
 2) Install sqlite3 for C
     link: http://www.tutorialspoint.com/sqlite/sqlite_installation.htm
+    
+=== UNMOUNT ===
+fusermount -u <mount_path>
