@@ -150,11 +150,6 @@ def upload_files(files, upload_folder):
 
 def update_database(conn, files):
     errors = []
-    title = UNKNOWN 
-    album = UNKNOWN 
-    artist = UNKNOWN 
-    genre = UNKNOWN 
-    year = UNKNOWN 
 
     for file in files:
         if not isMp3File(file['path']):
@@ -174,15 +169,9 @@ def update_database(conn, files):
             insert_into_db(conn = conn, file = file, artist = artist, 
                 album = album, title = title, genre = genre, year = year)
         else:
-			unknown_attrs = [title, artist, album, genre, year]
-			
-			for attr in unknown_attrs:
-				if attr and str(attr) == UNKNOWN:
-					title, album, artist, genre, year = search_apple_api(file['name'])
-					unknown_attrs = [title, artist, album, genre, year]
-					break
-			
-			if unknown_attrs[0] and str(unknown_attrs[0]) != UNKNOWN:
+			title, album, artist, genre, year = search_apple_api(file['name'])
+	
+			if title and title != UNKNOWN:
 				errors.append('No tag found for mp3 file {fi}. '\
 					'Successfully found tag info using Apple API.'.\
 					format(fi = file['name']))
