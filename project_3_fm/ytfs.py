@@ -141,11 +141,10 @@ def upload_files(files, upload_folder):
                     skipped = num_skipped))
     
     for file in files:
-        file_name = file[file.rindex('/') + 1:]
-        if file_name.endswith('.mp3'):
+        if file['name'].endswith('.mp3'):
             bucket = s3.create_bucket(BUCKET_NAME)  
-            key = bucket.new_key(file_name)
-            key.set_contents_from_filename(file)
+            key = bucket.new_key(file['name'])
+            key.set_contents_from_filename(file['path'])
             key.set_acl('public-read')
 
 def update_database(conn, files):
