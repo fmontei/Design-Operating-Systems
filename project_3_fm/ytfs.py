@@ -193,11 +193,11 @@ def insert_into_db(conn, file, title = UNKNOWN, artist = UNKNOWN,
         title = file['name']
     else:
         title = title + '.mp3'
-    title = title.encode('utf-8')
-    artist = artist.encode('utf-8')
-    album = album.encode('utf-8')
-    genre = genre.encode('utf-8')
-    year = str(year).encode('utf-8')
+    title = title.encode('utf-8') if title else ''
+    artist = artist.encode('utf-8') if artist else ''
+    album = album.encode('utf-8') if album else ''
+    genre = genre.encode('utf-8') if genre else ''
+    year = str(year).encode('utf-8') if year else ''
 
     cursor = conn.cursor()
     query = 'INSERT INTO {table} (file, title, artist, '\
