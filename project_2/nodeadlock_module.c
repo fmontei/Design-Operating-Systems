@@ -3,10 +3,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/string.h>
-<<<<<<< HEAD
-#include <linux/wait.h>
-=======
->>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
 
 typedef struct {
   int count;
@@ -15,16 +11,8 @@ typedef struct {
 } pthread_monitor;
 
 static struct jprobe nodeadlock_probe;
-<<<<<<< HEAD
-static DEFINE_MUTEX(count_mutex); 
-static DECLARE_WAIT_QUEUE_HEAD(wq);
 static pthread_monitor first_monitor;
 static pthread_monitor second_monitor;
-static struct task_struct *sleeping_task = NULL;
-=======
-static pthread_monitor first_monitor;
-static pthread_monitor second_monitor;
->>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
 
 static long nodeadlock_init(int thread_id, int index) {
   if (index == 0) {
@@ -35,17 +23,11 @@ static long nodeadlock_init(int thread_id, int index) {
     second_monitor.count = 0;
     second_monitor.thread_id = -1;
     second_monitor.ready = 0;
-
-    //printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
-      //thread_id, index);
     return 0;
   } else if (index == 1) {
     second_monitor.count = 0;
     second_monitor.thread_id = thread_id;
     second_monitor.ready = 1;
-    
-    //printk(KERN_INFO "nodeadlock_init called with thread_id = %d, index = %d\n",
-      //thread_id, index);
     return 0;
   } 
   return -1;
@@ -79,10 +61,6 @@ static long nodeadlock_mutex_lock(int this_thread_id) {
   other_monitor = get_other_thread_by_id(this_thread_id);
 
   if (this_monitor == NULL || other_monitor == NULL) {
-<<<<<<< HEAD
-    mutex_unlock(&count_mutex); // Unlock
-=======
->>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
     return -1;
   } 
   
@@ -100,10 +78,6 @@ static long nodeadlock_mutex_unlock(int this_thread_id) {
   this_monitor = get_thread_by_id(this_thread_id);
   
   if (this_monitor == NULL) {
-<<<<<<< HEAD
-    mutex_unlock(&count_mutex); // Unlock
-=======
->>>>>>> 27b00448c2c9d874e9e7afadb5ff65d3db6a97cc
     return -1;
   } 
   
