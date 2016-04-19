@@ -10,8 +10,6 @@ typedef struct {
   int ready;
 } pthread_monitor;
 
-static DEFINE_MUTEX(count_mutex); // INITIALIZE MUTEX CODE HERE
-static DECLARE_WAIT_QUEUE_HEAD(wq);
 static pthread_monitor first_monitor;
 static pthread_monitor second_monitor;
 
